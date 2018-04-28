@@ -50,6 +50,10 @@ interface SendRequestResponse {
     status: string;
 }
 
+interface StartOptions {
+    showOptions: vscode.ViewColumn;
+}
+
 interface WebViewMessage {
     command: string;
     data?: any;
@@ -81,7 +85,7 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    <link rel="stylesheet" href="${ this.getResourceUri('css/hljs-dracula.css') }">
+    <link rel="stylesheet" href="${ this.getResourceUri('css/hljs-atom-one-dark.css') }">
     <link rel="stylesheet" href="${ this.getResourceUri('css/bootstrap.min.css') }">
     
     <script src="${ this.getResourceUri('js/highlight.pack.js') }"></script>
@@ -210,6 +214,7 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
             } else {
                 ME.postMessage('setBodyContent', {
                     data: data,
+                    mime: MimeTypes.lookup(path),
                     path: path,
                     size: size,
                 });
@@ -428,7 +433,7 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
         }
     }
 
-    public async start(showOptions: vscode.ViewColumn) {
+    public async start(opts: StartOptions) {
         const ME = this;
 
         let newPanel: vscode.WebviewPanel;
@@ -436,7 +441,7 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
             newPanel = vscode.window.createWebviewPanel(
                 'vscodeHTTPClient',
                 'New HTTP request',
-                showOptions,
+                opts.showOptions,
                 {
                     enableScripts: true,
                     retainContextWhenHidden: true,
@@ -523,14 +528,14 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
 }
 
 
-async function startNewRequest(showOptions: vscode.ViewColumn) {
+async function startNewRequest(opts: StartOptions) {
     let request: HTTPRequest;
     try {
         request = new HTTPRequest();
 
         await request.initialize();
 
-        await request.start(showOptions);
+        await request.start(opts);
     } catch (e) {
         vscode_helpers.tryDispose(request);
     }
@@ -541,11 +546,15 @@ export async function activate(context: vscode.ExtensionContext) {
 
     extension.subscriptions.push(
         vscode.commands.registerCommand('extension.http.client.newRequestSplit', async () => {
-            await startNewRequest( vscode.ViewColumn.Two );
+            await startNewRequest({
+                showOptions: vscode.ViewColumn.Two,
+            });
         }),
 
         vscode.commands.registerCommand('extension.http.client.newRequestFullSize', async () => {
-            await startNewRequest( vscode.ViewColumn.One );
+            await startNewRequest({
+                showOptions: vscode.ViewColumn.One,
+            });
         }),
     );
 }

@@ -1,7 +1,7 @@
 
 let vschcNextHeaderRowId = -1;
 
-function vschc_add_header_row() {
+function vschc_add_header_row(name, value) {
     const CARD = jQuery('#vschc-headers-card');
     const CARD_BODY = CARD.find('.card-body');
 
@@ -43,7 +43,70 @@ function vschc_add_header_row() {
     });
     ADD_BTN.appendTo( NEW_ROW.find('.vschc-actions') );
 
+    if (arguments.length > 0) {
+        NAME_FIELD.val( name );
+        VALUE_FIELD.val( value );
+    }
+
     NEW_ROW.appendTo( TABLE_BODY );
+}
+
+function vschc_auto_add_content_type_header(mime) {
+    if (!mime) {
+        return;
+    }
+
+    mime = ('' + mime).toLowerCase().trim();
+
+    let addContentType = true;
+
+    const HEADERS_CARD = jQuery('#vschc-headers-card');
+    const HEADERS_CARD_BODY = HEADERS_CARD.find('.card-body');
+
+    HEADERS_CARD_BODY.find('table tbody tr.vschc-header-row').each(function() {
+        const ROW = jQuery(this);
+
+        const NAME = ROW.find('.vschc-name input').val();
+        if (NAME) {
+            if ('content-type' === NAME.toLowerCase().trim()) {
+                addContentType = false;
+            }
+        }
+    });
+
+    if (addContentType) {
+        vschc_add_header_row( 'Content-type', mime );
+
+        vschc_remove_empty_headers();
+    }
+}
+
+function vschc_body_content() {
+    const TEXT_BODY_COL = jQuery('#vschc-input-body-text-col');
+    const FROM_FILE_COL = jQuery('#vschc-input-body-file-col');
+
+    let content = false;
+    if (TEXT_BODY_COL.is(':visible')) {
+        content = btoa( TEXT_BODY_COL.find('textarea').val() );
+    } else if (FROM_FILE_COL.is(':visible')) {
+        content = FROM_FILE_COL.find('input').val();
+    }
+
+    return content;
+}
+
+function vschc_remove_empty_headers() {
+    const HEADERS_CARD = jQuery('#vschc-headers-card');
+    const HEADERS_CARD_BODY = HEADERS_CARD.find('.card-body');
+
+    HEADERS_CARD_BODY.find('table tbody tr.vschc-header-row').each(function() {
+        const ROW = jQuery(this);
+
+        const NAME = ROW.find('.vschc-name input').val();
+        if (!NAME) {
+            ROW.remove();
+        }
+    });
 }
 
 function vschc_reset_body_file() {
@@ -254,6 +317,8 @@ jQuery(() => {
                     }
 
                     vschc_update_body_area();
+                    
+                    vschc_auto_add_content_type_header( CONTENT.mime );
                 }
                 break;
         }
@@ -304,33 +369,18 @@ jQuery(() => {
                     const ROW = jQuery(this);
 
                     const NAME = ROW.find('.vschc-name input').val();
-
-                    if (!NAME) {
-                        return;
+                    if (NAME) {
+                        HEADERS[ ('' + NAME).toLowerCase().trim() ] = ROW.find('.vschc-value input').val();
                     }
-
-                    HEADERS[ ('' + NAME).toLowerCase().trim() ] = ROW.find('.vschc-value input').val();
                 });
             }
-
-            let body = {
-                content: false,
-            };
-            {
-                const TEXT_BODY_COL = jQuery('#vschc-input-body-text-col');
-                const FROM_FILE_COL = jQuery('#vschc-input-body-file-col');
-
-                if (TEXT_BODY_COL.is(':visible')) {
-                    body.content = btoa( TEXT_BODY_COL.find('textarea').val() );
-                } else if (FROM_FILE_COL.is(':visible')) {
-                    body.content = FROM_FILE_COL.find('input').val();
-                }
-            }            
 
             vscode.postMessage({
                 command: 'sendRequest',
                 data: {
-                    body: body,
+                    body: {
+                        content: vschc_body_content()
+                    },
                     headers: HEADERS,
                     method: METHOD_FIELD.val(),
                     url: URL_FIELD.val().trim()
