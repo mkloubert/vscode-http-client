@@ -6,3 +6,6 @@ src/**
 .gitignore
 tsconfig.json
 tslint.json
+img/**
+pushall.sh
+package-lock.json
