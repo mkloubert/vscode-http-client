@@ -70,6 +70,7 @@
         "vscode": "^1.1.6"
     },
     "dependencies": {
+        "header-case-normalizer": "^1.0.3",
         "mime-types": "^2.1.18",
         "vscode-helpers": "^1.10.0"
     }

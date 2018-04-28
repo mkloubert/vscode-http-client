@@ -6,6 +6,31 @@ body main {
     padding-top: 70px;
 }
 
+body main .vschc-card {
+    margin-bottom: 8px;
+}
+
+#vschc-headers-card .card-body table {
+    margin: 0;
+}
+
+#vschc-headers-card .card-body {
+    padding: 0;
+}
+
+#vschc-headers-card .card-body table .vschc-name {
+    width: 256px;
+}
+
+#vschc-headers-card .card-body table .vschc-actions {
+    text-align: right;
+    width: 96px;
+}
+
+#vschc-headers-card .card-body table .vschc-actions .btn {
+    margin-left: 4px;
+}
+
 .card .form-group.row label {
     padding: 0;
     vertical-align: top;
@@ -19,4 +44,16 @@ body main {
     display: block;
     margin: 8px;
     text-align: center;
+}
+
+.btn {
+    color: #fff !important;
+}
+
+#vschc-response-card pre {
+    margin: 0;
+}
+
+#vschc-save-response-btn {
+    margin-top: 16px;
 }

@@ -21,6 +21,7 @@ import * as FS from 'fs';
 import * as HTTP from 'http';
 import * as HTTPs from 'https';
 import * as MimeTypes from 'mime-types';
+const NormalizeHeaderCase = require("header-case-normalizer");
 import * as Path from 'path';
 import * as URL from 'url';
 import * as vscode from 'vscode';
@@ -32,6 +33,10 @@ interface SaveContentData {
 }
 
 interface SendRequestData {
+    body: {
+        content: string | false;
+    };
+    headers: any;
     method: string;
     url: string;
 }
@@ -86,6 +91,15 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
     <script>
         const vscode = acquireVsCodeApi();
 
+        function vschc_log(msg) {
+            vscode.postMessage({
+                command: 'log',
+                data: {
+                    message: msg
+                }
+            });
+        }
+
         const AJAX_LOADER_URL = ${ JSON.stringify( '' + this.getResourceUri('img/ajax-loader.gif') ) };
     </script>
 
@@ -102,7 +116,7 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
     </header>
 
     <main role="main" class="container">
-        <div class="card">
+        <div class="vschc-card card">
             <div class="card-header">
                 Request Settings
             </div>
@@ -153,13 +167,21 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
             </div>
         </div>
 
+        <div class="vschc-card card" id="vschc-headers-card">
+            <div class="card-header">
+                Custom Headers
+            </div>
+
+            <div class="card-body"></div>
+        </div>
+
         <div class="row">
             <div class="col-sm-12 text-right" id="vschc-send-request-col">
                 <a class="btn btn-success" id="vschc-send-request" role="button">Send Request</a>
             </div>            
         </div>
 
-        <div class="card" id="vschc-response-card">
+        <div class="vschc-card card" id="vschc-response-card">
             <div class="card-header">
                 Response
             </div>
@@ -331,10 +353,20 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
             const PROTOCOL = vscode_helpers.normalizeString(REQUEST_URL.protocol);
 
             const OPTS: HTTP.RequestOptions = {
+                headers: {},
                 hostname: vscode_helpers.toStringSafe(REQUEST_URL.hostname),
                 method: vscode_helpers.toStringSafe(request.method).toUpperCase().trim(),
                 path: REQUEST_URL.path,
             };
+
+            if (request.headers) {
+                for (const H in request.headers) {
+                    const NAME = NormalizeHeaderCase(H);
+                    if ('' !== NAME) {
+                        OPTS.headers[NAME] = vscode_helpers.toStringSafe( request.headers[H] );
+                    }
+                }
+            }
             
             if (vscode_helpers.isEmptyString(OPTS.hostname)) {
                 OPTS.hostname = '127.0.0.1';
@@ -375,6 +407,18 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
             }
 
             const REQ = createRequest();
+
+            let body: Buffer;
+            if (request.body) {
+                if (false !== request.body.content) {
+                    body = new Buffer( vscode_helpers.toStringSafe(request.body.content).trim(), 'base64' );
+                }
+            }
+
+            if (body && body.length > 0) {
+                REQ.write( body );
+            }
+
             REQ.end();
         } catch (e) {
             COMPLETED(e).then(() => {                
@@ -410,6 +454,10 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
                 switch (msg.command) {
                     case 'loadBodyContent':
                         ME.loadBodyContent();
+                        break;
+
+                    case 'log':
+                        console.log( msg.data.message );
                         break;
 
                     case 'saveContent':
