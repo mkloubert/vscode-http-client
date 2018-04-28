@@ -96,7 +96,7 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
         <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
             <a class="navbar-brand" href="https://github.com/mkloubert/vscode-http-client" target="_blank">
                 <img src="${ this.getResourceUri('img/icon.svg') }" width="30" height="30" class="d-inline-block align-top" alt="">
-                HTTP Client
+                <span>HTTP Client</span>
             </a>
         </nav>
     </header>

@@ -151,6 +151,10 @@ jQuery(() => {
 
                     const BTN = jQuery('#vschc-send-request');
                     BTN.removeClass('disabled');
+
+                    jQuery('html,body').animate({
+                        scrollTop: jQuery('#vschc-response-card').offset().top
+                    }, 'slow');
                 }
                 break;
 
@@ -223,4 +227,8 @@ jQuery(() => {
 
     vschc_reset_body_file();
     vschc_update_body_area();
+});
+
+jQuery(() => {
+    jQuery('#vschc-input-url').focus();
 });
