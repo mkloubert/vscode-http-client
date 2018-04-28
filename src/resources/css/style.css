@@ -1,0 +1,18 @@
+body main {
+    padding-top: 70px;
+}
+
+.card .form-group.row label {
+    padding: 0;
+    vertical-align: top;
+}
+
+#vschc-send-request-col {
+    padding: 16px;
+}
+
+.vschc-ajax-loader {
+    display: block;
+    margin: 8px;
+    text-align: center;
+}

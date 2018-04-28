@@ -2,7 +2,7 @@
     "name": "vscode-http-client",
     "displayName": "HTTP Client",
     "description": "Simple way to do HTTP requests.",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "publisher": "mkloubert",
     "engines": {
         "vscode": "^1.23.0"
@@ -21,7 +21,20 @@
         "*"
     ],
     "main": "./out/extension",
-    "contributes": {},
+    "contributes": {
+        "commands": [
+            {
+                "command": "extension.http.client.newRequestSplit",
+                "title": "New request ...",
+                "category": "HTTP Client"
+            },
+            {
+                "command": "extension.http.client.newRequestFullSize",
+                "title": "New request (full size)...",
+                "category": "HTTP Client"
+            }
+        ]
+    },
     "scripts": {
         "vscode:prepublish": "npm run compile",
         "compile": "tsc -p ./",
@@ -49,13 +62,15 @@
     },
     "readmeFilename": "README.md",
     "devDependencies": {
-        "typescript": "^2.6.1",
-        "vscode": "^1.1.6",
-        "tslint": "^5.8.0",
+        "@types/mime-types": "^2.1.0",
+        "@types/mocha": "^2.2.42",
         "@types/node": "^7.0.43",
-        "@types/mocha": "^2.2.42"
+        "tslint": "^5.8.0",
+        "typescript": "^2.6.1",
+        "vscode": "^1.1.6"
     },
     "dependencies": {
+        "mime-types": "^2.1.18",
         "vscode-helpers": "^1.10.0"
     }
 }

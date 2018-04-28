@@ -5,5 +5,34 @@
     },
     "search.exclude": {
         "out": true // set this to false to include "out" folder in search results
+    },
+
+    "deploy.reloaded": {
+        "packages": [
+            {
+                "name": "Resources",
+                "files": [
+                    "/src/resources/**/*"
+                ],
+
+                "deployOnChange": true,
+                "removeOnChange": true,
+
+                "targets": [ "out" ]
+            }
+        ],
+
+        "targets": [
+            {
+                "name": "out",
+                "type": "local",
+                "dir": "./out/resources",
+                "mappings": {
+                    "/src/resources/css/**/*": "/css",
+                    "/src/resources/img/**/*": "/img",
+                    "/src/resources/js/**/*": "/js"
+                }
+            }
+        ]
     }
 }

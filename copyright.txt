@@ -1,0 +1,4 @@
+
+Icons:
+    - /icon.png (Vector Stall; https://www.iconfinder.com/vectorstock)
+    - /img/share/* (https://simplesharingbuttons.com)
