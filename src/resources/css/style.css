@@ -37,7 +37,9 @@ body main .vschc-card {
 }
 
 #vschc-send-request-col {
-    padding: 16px;
+    padding-bottom: 16px;
+    padding-right: 16px;
+    padding-top: 8px;
 }
 
 .vschc-ajax-loader {
