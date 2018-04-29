@@ -149,6 +149,10 @@ function vschc_remove_empty_headers() {
 function vschc_reset_body_file() {
     const BODY_FILE = jQuery('#vschc-input-body-file');
     BODY_FILE.val( '' );
+
+    const BODY_FILE_CONTENT_TO_DISPLAY = jQuery('#vschc-body-file-content-to-display');
+    BODY_FILE_CONTENT_TO_DISPLAY.hide();
+    BODY_FILE_CONTENT_TO_DISPLAY.html('');    
 }
 
 function vschc_reset_headers() {
@@ -436,15 +440,37 @@ jQuery(() => {
 
             case 'setBodyContentFromFile':
                 {
+                    let contentDisplayer;
+
                     const CONTENT = MSG.data;
 
                     const BODY_FILE = jQuery('#vschc-input-body-file');
                     const BODY_FILE_PATH = jQuery('#vschc-body-file-path');
+                    
+                    const BODY_FILE_CONTENT_TO_DISPLAY = jQuery('#vschc-body-file-content-to-display');
+                    BODY_FILE_CONTENT_TO_DISPLAY.hide();
+                    BODY_FILE_CONTENT_TO_DISPLAY.html('');
+
                     if (CONTENT && CONTENT.data.length > 1) {
                         BODY_FILE.val( CONTENT.data );
 
                         BODY_FILE_PATH.find('.vschc-path').text( CONTENT.path );
                         BODY_FILE_PATH.find('.vschc-size').text( `(${ CONTENT.size })` );
+
+                        if (CONTENT.mime) {
+                            const MIME = ('' + CONTENT.mime).toLowerCase().trim();
+                            if (MIME.startsWith('image/')) {
+                                contentDisplayer = () => {
+                                    const IMG = jQuery('<img />');
+                                    IMG.attr('src', `data:${ MIME };base64,${ CONTENT.data.trim() }`);
+                                    IMG.addClass( 'img-fluid' );
+
+                                    IMG.appendTo( BODY_FILE_CONTENT_TO_DISPLAY );
+
+                                    BODY_FILE_CONTENT_TO_DISPLAY.show();
+                                };
+                            }
+                        }
                     } else {
                         vschc_reset_body_file();
                     }
@@ -452,6 +478,10 @@ jQuery(() => {
                     vschc_update_body_area();
                     
                     vschc_auto_add_content_type_header( CONTENT.mime );
+
+                    if (contentDisplayer) {
+                        contentDisplayer();
+                    }
                 }
                 break;
         }
@@ -463,7 +493,7 @@ jQuery(() => {
         });
     });
 
-    jQuery('#vschc-body-file-path .vschc-path').on('click', function() {
+    jQuery('#vschc-body-file-path .vschc-path, #vschc-body-file-content-to-display').on('click', function() {
         vscode.postMessage({
             command: 'unsetBodyFromFile'            
         });

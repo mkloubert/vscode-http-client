@@ -88,6 +88,28 @@ export function activate(context: vscode.ExtensionContext) {
                     showError(e);
                 }
             }),
+
+            // newRequestFromFile
+            vscode.commands.registerCommand('extension.http.client.newRequestFromFile', async () => {
+                try {
+                    const SELECTED_FILES = await vscode.window.showOpenDialog({
+                        canSelectFiles: true,
+                        canSelectFolders: false,
+                        canSelectMany: false,
+                        openLabel: 'Start request'
+                    });
+
+                    if (!SELECTED_FILES || SELECTED_FILES.length < 1) {
+                        return;
+                    }
+
+                    await vschc_requests.startNewRequest({
+                        file: SELECTED_FILES[0],
+                    });
+                } catch (e) {
+                    showError(e);
+                }
+            }),
         );
     });
 

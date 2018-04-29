@@ -17,6 +17,7 @@
 
 import * as _ from 'lodash';
 import * as FS from 'fs';
+import * as FSExtra from 'fs-extra';
 import * as HTTP from 'http';
 import * as HTTPs from 'https';
 import * as MimeTypes from 'mime-types';
@@ -69,6 +70,13 @@ interface SendRequestResponse {
     status: string;
 }
 
+interface SetBodyContentFromFileOptions {
+    data: string;
+    mime: string | false;
+    path: string;
+    size: number;
+}
+
 /**
  * Options for starting a new HTTP request.
  */
@@ -81,6 +89,10 @@ export interface StartNewRquestOptions {
      * Initial data.
      */
     data?: RequestData;
+    /**
+     * The file to load.
+     */
+    file?: vscode.Uri;
     /**
      * Display options for the tab of the underlying view.
      */
@@ -278,6 +290,7 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
 
                         <div class="col-sm-10" id="vschc-input-body-file-col" style="display: none;">
                             <div id="vschc-body-file-path"><a class="vschc-path" title="Click here to reset ..." href="#"></a>&nbsp;<span class="vschc-size"></span></div>
+                            <div id="vschc-body-file-content-to-display" style="display: none;" title="Click here to reset ..."></div>
                             <input type="hidden" id="vschc-input-body-file">
                         </div>
                     </div>
@@ -335,7 +348,7 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
             if (err) {
                 ME.showError(err);
             } else {
-                ME.postMessage('setBodyContentFromFile', {
+                ME.setBodyContentFromFile({
                     data: data,
                     mime: MimeTypes.lookup(path),
                     path: path,
@@ -624,6 +637,10 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
         }
     }
 
+    private async setBodyContentFromFile(opts: SetBodyContentFromFileOptions) {
+        return await this.postMessage('setBodyContentFromFile', opts);
+    }
+
     private async showError(err: any) {
         return vschc.showError(err);
     }
@@ -689,17 +706,31 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
                         break;
 
                     case 'onLoaded':
-                        {
+                        (async () => {
+                            if (!_.isNil(opts.file)) {
+                                const FILE_PATH = opts.file.fsPath;
+                                const OPTS: SetBodyContentFromFileOptions = {
+                                    data: (await FSExtra.readFile(FILE_PATH)).toString('base64'),
+                                    mime: MimeTypes.lookup(FILE_PATH),
+                                    path: FILE_PATH,
+                                    size: (await FSExtra.lstat(FILE_PATH)).size,
+                                };
+
+                                await ME.setBodyContentFromFile(OPTS);
+                            }
+
                             if (!_.isNil(opts.body)) {
-                                ME.postMessage('setBodyContent', {
+                                await ME.postMessage('setBodyContent', {
                                     data: opts.body
                                 });
                             }
 
                             if (!_.isNil(opts.data)) {
-                                ME.postMessage('importRequestCompleted', opts.data);
+                                await ME.postMessage('importRequestCompleted', opts.data);
                             }
-                        }
+                        })().then(() => {}, (err) => {
+                            ME.showError(err);
+                        });
                         break;
 
                     case 'saveContent':
@@ -746,7 +777,7 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
             try {
                 if (selectedItem) {
                     if (1 === selectedItem.value) {
-                        ME.postMessage('setBodyContentFromFile', null);
+                        ME.setBodyContentFromFile(null);
                     }
                 }
             } catch (e) {

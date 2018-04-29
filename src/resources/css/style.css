@@ -63,3 +63,8 @@ body main .vschc-card {
 #vschc-save-response-btn {
     margin-top: 16px;
 }
+
+#vschc-body-file-content-to-display {
+    cursor: pointer;
+    margin-top: 8px;
+}

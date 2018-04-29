@@ -2,7 +2,7 @@
     "name": "vscode-http-client",
     "displayName": "HTTP Client",
     "description": "Simple way to do HTTP requests.",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "publisher": "mkloubert",
     "engines": {
         "vscode": "^1.23.0"
@@ -32,6 +32,11 @@
             {
                 "command": "extension.http.client.newRequestForEditor",
                 "title": "Start HTTP request for editor...",
+                "category": "HTTP Client"
+            },
+            {
+                "command": "extension.http.client.newRequestFromFile",
+                "title": "New HTTP request from file ...",
                 "category": "HTTP Client"
             }
         ],
