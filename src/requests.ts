@@ -468,11 +468,11 @@ export class HTTPRequest extends HTTPRequestBase {
                 break;
 
             case 'saveContent':
-                ME.saveContent(msg.data);
+                await ME.saveContent(msg.data);
                 break;
 
             case 'saveRawResponse':
-                ME.saveRawResponse(msg.data);
+                await ME.saveRawResponse(msg.data);
                 break;
 
             case 'sendRequest':
@@ -480,7 +480,7 @@ export class HTTPRequest extends HTTPRequestBase {
                 break;
 
             case 'unsetBodyFromFile':
-                ME.unsetBodyFromFile();
+                await ME.unsetBodyFromFile();
                 break;
         }
     }
@@ -627,16 +627,7 @@ export class HTTPRequest extends HTTPRequestBase {
 </html>`;
     }
 
-    //TODO: make async
-    private saveContent(data: SaveContentData) {
-        const ME = this;
-
-        const COMPLETED = (err: any) => {
-            if (err) {
-                ME.showError(err);
-            }
-        };
-
+    private async saveContent(data: SaveContentData) {
         const OPTS: vscode.SaveDialogOptions = {
             saveLabel: 'Save response content',
         };
@@ -647,31 +638,14 @@ export class HTTPRequest extends HTTPRequestBase {
             };
         }
 
-        try {
-            vscode.window.showSaveDialog(OPTS).then((file) => {
-                if (!file) {
-                    return;
-                }
+        const FILE = await vscode.window.showSaveDialog(OPTS);
 
-                try {
-                    FS.writeFile(file.fsPath, new Buffer(data.data, 'base64'), (err) => {
-                        COMPLETED(err);
-                    });
-                } catch (e) {
-                    COMPLETED(e);
-                }
-            }, (err) => {
-                COMPLETED(err);
-            });
-        } catch (e) {
-            COMPLETED(e);
+        if (FILE) {
+            await FS.writeFile(FILE.fsPath, new Buffer(data.data, 'base64'));
         }
     }
 
-    //TODO: make async
-    private saveRawResponse(response: SendRequestResponse) {
-        const ME = this;
-
+    private async saveRawResponse(response: SendRequestResponse) {
         let http = `HTTP/${ response.httpVersion } ${ response.code } ${ response.status }\r\n`;
 
         if (response.headers) {
@@ -690,35 +664,18 @@ export class HTTPRequest extends HTTPRequestBase {
             ]);
         }
 
-        try {
-            vscode.window.showSaveDialog({
-                filters: {
-                    'HTTP file': [ 'http' ]
-                },
-                saveLabel: 'Save raw response',
-            }).then((file) => {
-                if (!file) {
-                    return;
-                }
+        const FILE = await vscode.window.showSaveDialog({
+            filters: {
+                'HTTP file': [ 'http' ]
+            },
+            saveLabel: 'Save raw response',
+        });
 
-                try {
-                    FS.writeFile(file.fsPath, dataToSave, (err) => {
-                        if (err) {
-                            ME.showError(err);
-                        }
-                    });
-                } catch (e) {
-                    ME.showError(e);
-                }
-            }, (err) => {
-                ME.showError(err);
-            });
-        } catch (e) {
-            ME.showError(e);
+        if (FILE) {
+            await FSExtra.writeFile(FILE.fsPath, dataToSave);
         }
     }
 
-    //TODO: make async
     private sendRequest(request: RequestData) {
         const ME = this;
 
@@ -745,135 +702,122 @@ export class HTTPRequest extends HTTPRequestBase {
                 }
             }
 
-            ME.postMessage('sendRequestCompleted', {
-                error: vscode_helpers.toStringSafe(err),
-                response: r,
-            });
+            try {
+                await ME.postMessage('sendRequestCompleted', {
+                    error: vscode_helpers.toStringSafe(err),
+                    response: r,
+                });
+            } catch (e) {
+                ME.showError(e);
+            }
         };
 
-        try {
-            let requestUrlValue = vscode_helpers.toStringSafe( request.url );
-            if (!requestUrlValue.toLowerCase().trim().startsWith('http')) {
-                requestUrlValue = 'http://' + requestUrlValue;
-            }
+        let requestUrlValue = vscode_helpers.toStringSafe( request.url );
+        if (!requestUrlValue.toLowerCase().trim().startsWith('http')) {
+            requestUrlValue = 'http://' + requestUrlValue;
+        }
 
-            const REQUEST_URL = URL.parse(requestUrlValue);
+        const REQUEST_URL = URL.parse(requestUrlValue);
 
-            let createRequest: (() => HTTP.ClientRequest) | false = false;
+        let createRequest: (() => HTTP.ClientRequest) | false = false;
 
-            const CALLBACK = (resp: HTTP.ClientResponse) => {
-                COMPLETED(null, resp).then(() => {
-                }, (err) => {
-                    ME.showError(err);
-                });
-            };
-
-            const PROTOCOL = vscode_helpers.normalizeString(REQUEST_URL.protocol);
-
-            const OPTS: HTTP.RequestOptions = {
-                headers: {},
-                hostname: vscode_helpers.toStringSafe(REQUEST_URL.hostname),
-                method: vscode_helpers.toStringSafe(request.method).toUpperCase().trim(),
-                path: REQUEST_URL.path,
-            };
-
-            if (request.headers) {
-                for (const H in request.headers) {
-                    const NAME = NormalizeHeaderCase(H);
-                    if ('' !== NAME) {
-                        OPTS.headers[NAME] = vscode_helpers.toStringSafe( request.headers[H] );
-                    }
-                }
-            }
-
-            if (vscode_helpers.isEmptyString(OPTS.hostname)) {
-                OPTS.hostname = '127.0.0.1';
-            }
-            if (vscode_helpers.isEmptyString(OPTS.method)) {
-                OPTS.method = 'GET';
-            }
-
-            OPTS.port = parseInt( vscode_helpers.normalizeString(REQUEST_URL.port) );
-
-            switch (PROTOCOL) {
-                case 'http:':
-                    createRequest = () => {
-                        OPTS.protocol = 'http:';
-                        if (isNaN(<any>OPTS.port)) {
-                            OPTS.port = 80;
-                        }
-
-                        return HTTP.request(OPTS, CALLBACK);
-                    };
-                    break;
-
-                case 'https:':
-                    createRequest = () => {
-                        OPTS.protocol = 'https:';
-                        if (isNaN(<any>OPTS.port)) {
-                            OPTS.port = 443;
-                        }
-
-                        return HTTPs.request(OPTS, CALLBACK);
-                    };
-                    break;
-            }
-
-            if (false === createRequest) {
-                throw new Error(`Invalid protocol '${ PROTOCOL }'!`);
-            }
-
-            const REQ = createRequest();
-
-            let body: Buffer;
-            if (request.body) {
-                if (false !== request.body.content) {
-                    body = new Buffer( vscode_helpers.toStringSafe(request.body.content).trim(), 'base64' );
-                }
-            }
-
-            if (body && body.length > 0) {
-                REQ.write( body );
-            }
-
-            REQ.end();
-        } catch (e) {
-            COMPLETED(e).then(() => {
+        const CALLBACK = (resp: HTTP.ClientResponse) => {
+            COMPLETED(null, resp).then(() => {
             }, (err) => {
                 ME.showError(err);
             });
+        };
+
+        const PROTOCOL = vscode_helpers.normalizeString(REQUEST_URL.protocol);
+
+        const OPTS: HTTP.RequestOptions = {
+            headers: {},
+            hostname: vscode_helpers.toStringSafe(REQUEST_URL.hostname),
+            method: vscode_helpers.toStringSafe(request.method).toUpperCase().trim(),
+            path: REQUEST_URL.path,
+        };
+
+        if (request.headers) {
+            for (const H in request.headers) {
+                const NAME = NormalizeHeaderCase(H);
+                if ('' !== NAME) {
+                    OPTS.headers[NAME] = vscode_helpers.toStringSafe( request.headers[H] );
+                }
+            }
         }
+
+        if (vscode_helpers.isEmptyString(OPTS.hostname)) {
+            OPTS.hostname = '127.0.0.1';
+        }
+        if (vscode_helpers.isEmptyString(OPTS.method)) {
+            OPTS.method = 'GET';
+        }
+
+        OPTS.port = parseInt( vscode_helpers.normalizeString(REQUEST_URL.port) );
+
+        switch (PROTOCOL) {
+            case 'http:':
+                createRequest = () => {
+                    OPTS.protocol = 'http:';
+                    if (isNaN(<any>OPTS.port)) {
+                        OPTS.port = 80;
+                    }
+
+                    return HTTP.request(OPTS, CALLBACK);
+                };
+                break;
+
+            case 'https:':
+                createRequest = () => {
+                    OPTS.protocol = 'https:';
+                    if (isNaN(<any>OPTS.port)) {
+                        OPTS.port = 443;
+                    }
+
+                    return HTTPs.request(OPTS, CALLBACK);
+                };
+                break;
+        }
+
+        if (false === createRequest) {
+            throw new Error(`Invalid protocol '${ PROTOCOL }'!`);
+        }
+
+        const REQ = createRequest();
+
+        let body: Buffer;
+        if (request.body) {
+            if (false !== request.body.content) {
+                body = new Buffer(vscode_helpers.toStringSafe(request.body.content).trim(), 'base64');
+            }
+        }
+
+        if (body && body.length > 0) {
+            REQ.write( body );
+        }
+
+        REQ.end();
     }
 
-    //TODO: make async
     private async setBodyContentFromFile(opts: SetBodyContentFromFileOptions) {
-        return await this.postMessage('setBodyContentFromFile', opts);
+        return this.postMessage('setBodyContentFromFile', opts);
     }
 
-    //TODO: make async
-    private unsetBodyFromFile() {
-        const ME = this;
-
-        vscode.window.showWarningMessage('Do really want to unset the current body?', {
+    private async unsetBodyFromFile() {
+        const SELECTED_ITEM = await vscode.window.showWarningMessage('Do really want to unset the current body?', {
             title: 'No',
             isCloseAffordance: true,
             value: 0,
         }, {
             title: 'Yes',
             value: 1,
-        }).then((selectedItem) => {
-            try {
-                if (selectedItem) {
-                    if (1 === selectedItem.value) {
-                        ME.setBodyContentFromFile(null);
-                    }
-                }
-            } catch (e) {
-                ME.showError(e);
-            }
-        }, (err) => {
-            ME.showError(err);
         });
+
+        if (SELECTED_ITEM) {
+            if (1 === SELECTED_ITEM.value) {
+                await this.setBodyContentFromFile(null);
+            }
+        }
     }
 }
 
