@@ -211,6 +211,7 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
 <html lang="en">
   <head>
     <meta charset="utf-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <link rel="stylesheet" href="${ this.getResourceUri('css/hljs-atom-one-dark.css') }">
@@ -231,6 +232,12 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
                 }
             });
         }
+
+        window.onerror = function() {
+            vschc_log(
+                JSON.stringify(arguments)
+            );
+        };
 
         const AJAX_LOADER_URL = ${ JSON.stringify( '' + this.getResourceUri('img/ajax-loader.gif') ) };
     </script>

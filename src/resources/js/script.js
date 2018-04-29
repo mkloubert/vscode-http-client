@@ -231,8 +231,6 @@ function vschc_update_body_area() {
 
 jQuery(() => {
     window.addEventListener('message', (e) => {
-        vschc_log('Message: ' + JSON.stringify(e));
-
         if (!e) {
             return;
         }
