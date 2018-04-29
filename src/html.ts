@@ -106,8 +106,10 @@ export interface ResourceUriResolver {
  */
 export function generateFooter(opts: GenerateFooterOptions) {
     return `
-    <link rel="stylesheet" href="${ opts.getResourceUri('css/' + opts.styleFile) }">
-    <script src="${ opts.getResourceUri('js/' + opts.scriptFile) }"></script>
+    <link rel="stylesheet" href="${ opts.getResourceUri('css/style.css') }">
+    <link rel="stylesheet" href="${ opts.getResourceUri('css/' + opts.styleFile) }.css">
+
+    <script src="${ opts.getResourceUri('js/' + opts.scriptFile) }.js"></script>
   </body>
 </html>`;
 }
@@ -183,8 +185,8 @@ ${ opts.getContent ? opts.getContent() : '' }
 
 ${ generateFooter({
     getResourceUri: opts.getResourceUri,
-    scriptFile: opts.name + '.js',
-    styleFile: opts.name + '.css',
+    scriptFile: opts.name,
+    styleFile: opts.name,
 }) }`;
 }
 

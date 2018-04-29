@@ -1,0 +1,37 @@
+
+body header .navbar .navbar-brand span {
+    margin-left: 8px;
+}
+
+body header .navbar form .btn {
+    margin-left: 8px;
+}
+
+body main {
+    padding-top: 70px;
+}
+
+body main .vschc-card {
+    margin-bottom: 8px;
+}
+
+.vschc-ajax-loader {
+    display: block;
+    margin: 8px;
+}
+
+.btn {
+    color: #fff !important;
+}
+
+.card .form-group.row label {
+    padding: 0;
+}
+
+#vschc-social-media-btns {
+    margin-left: 24px;
+}
+
+#vschc-social-media-btns .btn {
+    margin-left: 0 !important;
+}

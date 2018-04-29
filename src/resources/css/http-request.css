@@ -1,18 +1,3 @@
-body header .navbar .navbar-brand span {
-    margin-left: 8px;
-}
-
-body header .navbar form .btn {
-    margin-left: 8px;
-}
-
-body main {
-    padding-top: 70px;
-}
-
-body main .vschc-card {
-    margin-bottom: 8px;
-}
 
 #vschc-headers-card .card-body table {
     margin: 0;
@@ -35,10 +20,6 @@ body main .vschc-card {
     margin-left: 4px;
 }
 
-.card .form-group.row label {
-    padding: 0;
-}
-
 #vschc-input-body-text-label {
     vertical-align: top;
 }
@@ -47,16 +28,6 @@ body main .vschc-card {
     padding-bottom: 16px;
     padding-right: 16px;
     padding-top: 8px;
-}
-
-.vschc-ajax-loader {
-    display: block;
-    margin: 8px;
-    text-align: center;
-}
-
-.btn {
-    color: #fff !important;
 }
 
 #vschc-response-card pre {
@@ -83,12 +54,4 @@ body main .vschc-card {
 
 #vschc-response-card .card-header .btn {
     margin-left: 8px;
-}
-
-#vschc-social-media-btns {
-    margin-left: 24px;
-}
-
-#vschc-social-media-btns .btn {
-    margin-left: 0 !important;
 }
