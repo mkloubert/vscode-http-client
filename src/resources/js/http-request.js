@@ -120,6 +120,7 @@ function vschc_get_headers() {
 function vschc_prepare_request() {
     const URL_FIELD = jQuery('#vschc-input-url');
     const METHOD_FIELD = jQuery('#vschc-input-method');
+    const TITLE_FIELD = jQuery('#vschc-input-title');
 
     let url = URL_FIELD.val();
     if (url) {
@@ -132,6 +133,7 @@ function vschc_prepare_request() {
         },
         headers: vschc_get_headers(),
         method: METHOD_FIELD.val(),
+        title: TITLE_FIELD.val(),
         url: url
     };
 }
@@ -259,6 +261,7 @@ jQuery(() => {
 
                     let headers = REQUEST.headers;
                     let method = REQUEST.method;
+                    let title = REQUEST.title;
                     let url = REQUEST.url;
 
                     if (!method) {
@@ -287,14 +290,32 @@ jQuery(() => {
 
                     jQuery('#vschc-input-url').val( '' + url );
                     jQuery('#vschc-input-method').val( ('' + method).toUpperCase().trim() );
+                    jQuery('#vschc-input-title').val( '' + title )
+                                                .trigger('change');
 
                     vschc_reset_body_file();
                     jQuery('#vschc-input-body-text').val('');
 
                     vschc_update_body_area();
 
-                    jQuery('#vschc-input-url').focus();
+                    jQuery('#vschc-input-url').focus();                    
                 }
+                break;
+
+            case 'initTitle':
+                {
+                    const TITLE_FIELD = jQuery('#vschc-input-title');
+
+                    TITLE_FIELD.val( '' + MSG.data );
+                    TITLE_FIELD.on('change', () => {
+                        const NEW_VALUE = TITLE_FIELD.val();
+
+                        vscode.postMessage({
+                            command: 'titleUpdated',
+                            data: TITLE_FIELD.val(),
+                        });
+                    });
+                }                
                 break;
 
             case 'resetAllHeadersCompleted':
@@ -508,7 +529,7 @@ jQuery(() => {
                         contentDisplayer();
                     }
                 }
-                break;
+                break;            
         }
     });
 

@@ -50,6 +50,10 @@ export interface RequestData {
      */
     method: string;
     /**
+     * The title of the request.
+     */
+    title: string;
+    /**
      * The URL.
      */
     url: string;
@@ -96,6 +100,10 @@ export interface StartNewRquestOptions {
      * Display options for the tab of the underlying view.
      */
     showOptions?: vscode.ViewColumn;
+    /**
+     * The title for the view.
+     */
+    title?: string;
 }
 
 interface WebViewMessage {
@@ -210,6 +218,11 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase {
             opts = {};
         }
 
+        let title = vscode_helpers.toStringSafe(opts.title).trim();
+        if ('' === title) {
+            title = 'New HTTP Request';
+        }
+
         let showOptions = opts.showOptions;
         if (_.isNil(showOptions)) {
             showOptions = vscode.ViewColumn.One;
@@ -219,7 +232,7 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase {
         try {
             newPanel = vscode.window.createWebviewPanel(
                 'vscodeHTTPClient',
-                'New HTTP request',
+                title,
                 showOptions,
                 {
                     enableScripts: true,
@@ -352,6 +365,9 @@ export class HTTPRequest extends HTTPRequestBase {
 
             case 'onLoaded':
                 {
+                    await this.postMessage('initTitle',
+                                           vscode_helpers.toStringSafe(this.panel.title));
+
                     if (!_.isNil(this.startOptions.file)) {
                         const FILE_PATH = this.startOptions.file.fsPath;
                         const OPTS: SetBodyContentFromFileOptions = {
@@ -394,6 +410,12 @@ export class HTTPRequest extends HTTPRequestBase {
 
             case 'sendRequest':
                 this.sendRequest(msg.data);
+                break;
+
+            case 'titleUpdated':
+                try {
+                    this.panel.title = vscode_helpers.toStringSafe(msg.data);
+                } catch { }
                 break;
 
             case 'unsetBodyFromFile':
@@ -475,7 +497,19 @@ export class HTTPRequest extends HTTPRequestBase {
             <div class="card-body">
                 <form>
                     <div class="form-group row">
-                        <label for="vschc-input-url" class="col-sm-2 col-form-label text-right">URL:</label>
+                        <label for="vschc-input-title" class="col-sm-2 col-form-label text-right">
+                            <span class="align-middle">Title:</span>
+                        </label>
+
+                        <div class="col-sm-10">
+                            <input type="url" class="form-control" id="vschc-input-title" placeholder="Title of that request">
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label for="vschc-input-url" class="col-sm-2 col-form-label text-right">
+                            <span class="align-middle">URL:</span>
+                        </label>
 
                         <div class="col-sm-8">
                             <input type="url" class="form-control" id="vschc-input-url" placeholder="https://example.com/resource/123">
