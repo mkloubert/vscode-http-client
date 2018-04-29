@@ -106,13 +106,183 @@ interface WebViewMessage {
 
 
 /**
- * A HTTP request.
+ * A basic HTTP request.
  */
-export class HTTPRequest extends vscode_helpers.DisposableBase {
-    private _html: string;
+export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase {
+    /**
+     * Stores the HTML for the WebView.
+     */
+    protected _html: string | false = false;
     private _panel: vscode.WebviewPanel;
     private _resourceRoot: string;
+    private _startOptions: StartNewRquestOptions;
 
+    /**
+     * Returns an URI from the 'resources' directory.
+     *
+     * @param {string} p The (relative) path.
+     *
+     * @return {vscode.Uri} The URI.
+     */
+    public getResourceUri(p: string): vscode.Uri {
+        p = vscode_helpers.toStringSafe(p);
+
+        return vscode.Uri.file(
+            Path.join(this._resourceRoot, p)
+        ).with({
+            scheme: 'vscode-resource'
+        });
+    }
+
+    /**
+     * Initializes the request.
+     */
+    public async initialize() {
+        this._resourceRoot = Path.join(__dirname, './resources');
+
+        this._html = '';
+
+        await this.onInitialize();
+    }
+
+    /**
+     * Is invoked when the web view received a message from the browser.
+     *
+     * @param {WebViewMessage} msg The received message.
+     */
+    protected async onDidReceiveMessage(msg: WebViewMessage) {
+    }
+
+    /**
+     * The logic to intialize the request.
+     */
+    protected abstract async onInitialize();
+
+    /**
+     * @inheritdoc
+     */
+    protected onDispose() {
+        vscode_helpers.tryDispose(this._panel);
+    }
+
+    /**
+     * Gets the underlying panel.
+     */
+    public get panel(): vscode.WebviewPanel {
+        return this._panel;
+    }
+
+    /**
+     * Posts a message to the view.
+     *
+     * @param {string} command The name of the command to send.
+     * @param {any} [data] The optional data for the command.
+     *
+     * @return {Promise<boolean>} The promise that indicates if operation was successful or not.
+     */
+    public async postMessage(command: string, data?: any) {
+        const MSG: WebViewMessage = {
+            command: command,
+            data: data,
+        };
+
+        return await this.view.postMessage(MSG);
+    }
+
+    protected async showError(err: any) {
+        return vschc.showError(err);
+    }
+
+    /**
+     * Opens the view to start a request.
+     *
+     * @param {StartNewRquestOptions} [opts] Custom options.
+     *
+     * @return {Promise<boolean>} The promise that indicates if operation was successful or not.
+     */
+    public async start(opts?: StartNewRquestOptions) {
+        const ME = this;
+
+        if (this._panel) {
+            return false;
+        }
+
+        if (_.isNil(opts)) {
+            opts = {};
+        }
+
+        let showOptions = opts.showOptions;
+        if (_.isNil(showOptions)) {
+            showOptions = vscode.ViewColumn.One;
+        }
+
+        let newPanel: vscode.WebviewPanel;
+        try {
+            newPanel = vscode.window.createWebviewPanel(
+                'vscodeHTTPClient',
+                'New HTTP request',
+                showOptions,
+                {
+                    enableScripts: true,
+                    retainContextWhenHidden: true,
+                    localResourceRoots: [
+                        vscode.Uri.file(
+                            Path.resolve(
+                                Path.join(__dirname, './resources')
+                            )
+                        ),
+                    ]
+                }
+            );
+
+            newPanel.webview.onDidReceiveMessage((msg: WebViewMessage) => {
+                try {
+                    if (!_.isNil(msg)) {
+                        ME.onDidReceiveMessage(msg).then(() => {
+                        }, (err) => {
+                            ME.showError(err);
+                        });
+                    }
+                } catch (e) {
+                    ME.showError(e);
+                }
+            });
+
+            if (false !== ME._html) {
+                newPanel.webview.html = ME._html;
+            }
+
+            ME._startOptions = opts;
+            ME._panel = newPanel;
+
+            return true;
+        } catch (e) {
+            vscode_helpers.tryDispose(newPanel);
+
+            throw e;
+        }
+    }
+
+    /**
+     * Gets the last start options.
+     */
+    public get startOptions(): StartNewRquestOptions {
+        return this._startOptions;
+    }
+
+    /**
+     * Gets the underlying web view.
+     */
+    public get view(): vscode.Webview {
+        return this.panel.webview;
+    }
+}
+
+/**
+ * A HTTP request.
+ */
+export class HTTPRequest extends HTTPRequestBase {
+    //TODO: make async
     private exportRequest(request: RequestData) {
         const ME = this;
 
@@ -150,14 +320,7 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
         }
     }
 
-    private getResourceUri(p: string): vscode.Uri {
-        return vscode.Uri.file(
-            Path.join(this._resourceRoot, p)
-        ).with({
-            scheme: 'vscode-resource'
-        });
-    }
-
+    //TODO: make async
     private importRequest() {
         const ME = this;
 
@@ -199,14 +362,133 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
         }
     }
 
+    //TODO: make async
+    private loadBodyContent() {
+        const ME = this;
+
+        const COMPLETED = (
+            err: any,
+            data?: string, path?: string, size?: number,
+        ) => {
+            if (err) {
+                ME.showError(err);
+            } else {
+                ME.setBodyContentFromFile({
+                    data: data,
+                    mime: MimeTypes.lookup(path),
+                    path: path,
+                    size: size,
+                });
+            }
+        };
+
+        try {
+            vscode.window.showOpenDialog({
+                canSelectFiles: true,
+                canSelectFolders: false,
+                canSelectMany: false,
+            }).then((files) => {
+                try {
+                    if (!files || files.length < 1) {
+                        return;
+                    }
+
+                    FS.readFile(files[0].fsPath, (err, data) => {
+                        try {
+                            if (err) {
+                                COMPLETED(err);
+                            } else {
+                                COMPLETED(null,
+                                          data.toString('base64'), Path.resolve(files[0].fsPath), data.length);
+                            }
+                        } catch (e) {
+                            COMPLETED(e);
+                        }
+                    });
+                } catch (e) {
+                    COMPLETED(e);
+                }
+            }, (err) => {
+                COMPLETED(err);
+            });
+        } catch (e) {
+            COMPLETED(e);
+        }
+    }
+
     /**
-     * Initializes the request.
+     * @inheritdoc
      */
-    public async initialize() {
-        this._resourceRoot = Path.join(__dirname, './resources');
+    protected async onDidReceiveMessage(msg: WebViewMessage) {
+        const ME = this;
 
-        this._html = '';
+        switch (msg.command) {
+            case 'exportRequest':
+                ME.exportRequest( msg.data );
+                break;
 
+            case 'importRequest':
+                ME.importRequest();
+                break;
+
+            case 'loadBodyContent':
+                ME.loadBodyContent();
+                break;
+
+            case 'log':
+                console.log( msg.data.message );
+                break;
+
+            case 'onLoaded':
+                (async () => {
+                    if (!_.isNil(ME.startOptions.file)) {
+                        const FILE_PATH = ME.startOptions.file.fsPath;
+                        const OPTS: SetBodyContentFromFileOptions = {
+                            data: (await FSExtra.readFile(FILE_PATH)).toString('base64'),
+                            mime: MimeTypes.lookup(FILE_PATH),
+                            path: FILE_PATH,
+                            size: (await FSExtra.lstat(FILE_PATH)).size,
+                        };
+
+                        await ME.setBodyContentFromFile(OPTS);
+                    }
+
+                    if (!_.isNil(ME.startOptions.body)) {
+                        await ME.postMessage('setBodyContent', {
+                            data: ME.startOptions.body
+                        });
+                    }
+
+                    if (!_.isNil(ME.startOptions.data)) {
+                        await ME.postMessage('importRequestCompleted', ME.startOptions.data);
+                    }
+                })().then(() => {}, (err) => {
+                    ME.showError(err);
+                });
+                break;
+
+            case 'saveContent':
+                ME.saveContent(msg.data);
+                break;
+
+            case 'saveRawResponse':
+                ME.saveRawResponse(msg.data);
+                break;
+
+            case 'sendRequest':
+                ME.sendRequest(msg.data);
+                break;
+
+            case 'unsetBodyFromFile':
+                ME.unsetBodyFromFile();
+                break;
+        }
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected async onInitialize() {
         this._html += `<!doctype html>
 <html lang="en">
   <head>
@@ -345,90 +627,7 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
 </html>`;
     }
 
-    private loadBodyContent() {
-        const ME = this;
-
-        const COMPLETED = (
-            err: any,
-            data?: string, path?: string, size?: number,
-        ) => {
-            if (err) {
-                ME.showError(err);
-            } else {
-                ME.setBodyContentFromFile({
-                    data: data,
-                    mime: MimeTypes.lookup(path),
-                    path: path,
-                    size: size,
-                });
-            }
-        };
-
-        try {
-            vscode.window.showOpenDialog({
-                canSelectFiles: true,
-                canSelectFolders: false,
-                canSelectMany: false,
-            }).then((files) => {
-                try {
-                    if (!files || files.length < 1) {
-                        return;
-                    }
-
-                    FS.readFile(files[0].fsPath, (err, data) => {
-                        try {
-                            if (err) {
-                                COMPLETED(err);
-                            } else {
-                                COMPLETED(null,
-                                          data.toString('base64'), Path.resolve(files[0].fsPath), data.length);
-                            }
-                        } catch (e) {
-                            COMPLETED(e);
-                        }
-                    });
-                } catch (e) {
-                    COMPLETED(e);
-                }
-            }, (err) => {
-                COMPLETED(err);
-            });
-        } catch (e) {
-            COMPLETED(e);
-        }
-    }
-
-    /**
-     * @inheritdoc
-     */
-    protected onDispose() {
-        vscode_helpers.tryDispose(this._panel);
-    }
-
-    /**
-     * Gets the underlying panel.
-     */
-    public get panel(): vscode.WebviewPanel {
-        return this._panel;
-    }
-
-    /**
-     * Posts a message to the view.
-     *
-     * @param {string} command The name of the command to send.
-     * @param {any} [data] The optional data for the command.
-     *
-     * @return {Promise<boolean>} The promise that indicates if operation was successful or not.
-     */
-    public async postMessage(command: string, data?: any) {
-        const MSG: WebViewMessage = {
-            command: command,
-            data: data,
-        };
-
-        return await this.view.postMessage(MSG);
-    }
-
+    //TODO: make async
     private saveContent(data: SaveContentData) {
         const ME = this;
 
@@ -469,6 +668,7 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
         }
     }
 
+    //TODO: make async
     private saveRawResponse(response: SendRequestResponse) {
         const ME = this;
 
@@ -518,6 +718,7 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
         }
     }
 
+    //TODO: make async
     private sendRequest(request: RequestData) {
         const ME = this;
 
@@ -644,132 +845,12 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
         }
     }
 
+    //TODO: make async
     private async setBodyContentFromFile(opts: SetBodyContentFromFileOptions) {
         return await this.postMessage('setBodyContentFromFile', opts);
     }
 
-    private async showError(err: any) {
-        return vschc.showError(err);
-    }
-
-    /**
-     * Opens the view to start a request.
-     *
-     * @param {StartNewRquestOptions} [opts] Custom options.
-     *
-     * @return {Promise<boolean>} The promise that indicates if operation was successful or not.
-     */
-    public async start(opts?: StartNewRquestOptions) {
-        const ME = this;
-
-        if (this._panel) {
-            return false;
-        }
-
-        if (_.isNil(opts)) {
-            opts = {};
-        }
-
-        let showOptions = opts.showOptions;
-        if (_.isNil(showOptions)) {
-            showOptions = vscode.ViewColumn.One;
-        }
-
-        let newPanel: vscode.WebviewPanel;
-        try {
-            newPanel = vscode.window.createWebviewPanel(
-                'vscodeHTTPClient',
-                'New HTTP request',
-                showOptions,
-                {
-                    enableScripts: true,
-                    retainContextWhenHidden: true,
-                    localResourceRoots: [
-                        vscode.Uri.file(
-                            Path.resolve(
-                                Path.join(__dirname, './resources')
-                            )
-                        ),
-                    ]
-                }
-            );
-
-            newPanel.webview.onDidReceiveMessage((msg: WebViewMessage) => {
-                switch (msg.command) {
-                    case 'exportRequest':
-                        ME.exportRequest( msg.data );
-                        break;
-
-                    case 'importRequest':
-                        ME.importRequest();
-                        break;
-
-                    case 'loadBodyContent':
-                        ME.loadBodyContent();
-                        break;
-
-                    case 'log':
-                        console.log( msg.data.message );
-                        break;
-
-                    case 'onLoaded':
-                        (async () => {
-                            if (!_.isNil(opts.file)) {
-                                const FILE_PATH = opts.file.fsPath;
-                                const OPTS: SetBodyContentFromFileOptions = {
-                                    data: (await FSExtra.readFile(FILE_PATH)).toString('base64'),
-                                    mime: MimeTypes.lookup(FILE_PATH),
-                                    path: FILE_PATH,
-                                    size: (await FSExtra.lstat(FILE_PATH)).size,
-                                };
-
-                                await ME.setBodyContentFromFile(OPTS);
-                            }
-
-                            if (!_.isNil(opts.body)) {
-                                await ME.postMessage('setBodyContent', {
-                                    data: opts.body
-                                });
-                            }
-
-                            if (!_.isNil(opts.data)) {
-                                await ME.postMessage('importRequestCompleted', opts.data);
-                            }
-                        })().then(() => {}, (err) => {
-                            ME.showError(err);
-                        });
-                        break;
-
-                    case 'saveContent':
-                        ME.saveContent(msg.data);
-                        break;
-
-                    case 'saveRawResponse':
-                        ME.saveRawResponse(msg.data);
-                        break;
-
-                    case 'sendRequest':
-                        ME.sendRequest(msg.data);
-                        break;
-
-                    case 'unsetBodyFromFile':
-                        ME.unsetBodyFromFile();
-                        break;
-                }
-            });
-
-            newPanel.webview.html = ME._html;
-
-            this._panel = newPanel;
-
-            return true;
-        } catch (e) {
-            vscode_helpers.tryDispose(newPanel);
-
-            throw e;
-        }
-    }
-
+    //TODO: make async
     private unsetBodyFromFile() {
         const ME = this;
 
@@ -793,13 +874,6 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
         }, (err) => {
             ME.showError(err);
         });
-    }
-
-    /**
-     * Gets the underlying web view.
-     */
-    public get view(): vscode.Webview {
-        return this.panel.webview;
     }
 }
 
