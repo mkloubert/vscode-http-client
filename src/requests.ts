@@ -282,137 +282,64 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase {
  * A HTTP request.
  */
 export class HTTPRequest extends HTTPRequestBase {
-    //TODO: make async
-    private exportRequest(request: RequestData) {
-        const ME = this;
+    private async exportRequest(request: RequestData) {
+        delete request.body;
 
-        try {
-            delete request.body;
+        const DATA_TO_SAVE = new Buffer(
+            JSON.stringify(request, null, 2), 'utf8'
+        );
 
-            const DATA_TO_SAVE = new Buffer(
-                JSON.stringify(request, null, 2), 'utf8'
-            );
+        const FILE = await vscode.window.showSaveDialog({
+            filters: {
+                "HTTP Requests": [ 'http-request' ]
+            },
+            saveLabel: "Export request",
+        });
 
-            vscode.window.showSaveDialog({
-                filters: {
-                    "HTTP Requests": [ 'http-request' ]
-                },
-                saveLabel: "Export request",
-            }).then((file) => {
-                if (!file) {
-                    return;
-                }
-
-                try {
-                    FS.writeFile(file.fsPath, DATA_TO_SAVE, (err) => {
-                        if (err) {
-                            ME.showError(err);
-                        }
-                    });
-                } catch (e) {
-                    ME.showError(e);
-                }
-            }, (err) => {
-                ME.showError(err);
-            });
-        } catch (e) {
-            ME.showError(e);
+        if (FILE) {
+            await FSExtra.writeFile(FILE.fsPath, DATA_TO_SAVE);
         }
     }
 
-    //TODO: make async
-    private importRequest() {
-        const ME = this;
+    private async importRequest() {
+        const FILES = await vscode.window.showOpenDialog({
+            canSelectFiles: true,
+            canSelectFolders: false,
+            canSelectMany: false,
+            filters: {
+                "HTTP Requests": [ 'http-request' ]
+            },
+            openLabel: "Import request",
+        });
 
-        try {
-            vscode.window.showOpenDialog({
-                canSelectFiles: true,
-                canSelectFolders: false,
-                canSelectMany: false,
-                filters: {
-                    "HTTP Requests": [ 'http-request' ]
-                },
-                openLabel: "Import request",
-            }).then((files) => {
-                if (!files || files.length < 1) {
-                    return;
+        if (FILES && FILES.length > 0) {
+            const DATA = (await FSExtra.readFile(FILES[0].fsPath)).toString('utf8');
+            if (!vscode_helpers.isEmptyString(DATA)) {
+                const REQUEST: RequestData = JSON.parse( DATA );
+                if (REQUEST) {
+                    await this.postMessage('importRequestCompleted', REQUEST);
                 }
-
-                try {
-                    FS.readFile(files[0].fsPath, (err, data) => {
-                        if (err) {
-                            ME.showError(err);
-                        } else {
-                            try {
-                                const REQUEST: RequestData = JSON.parse( data.toString('utf8') );
-                                if (REQUEST) {
-                                    ME.postMessage('importRequestCompleted', REQUEST);
-                                }
-                            } catch (e) {
-                                ME.showError(err);
-                            }
-                        }
-                    });
-                } catch (e) {
-                    ME.showError(e);
-                }
-            });
-        } catch (e) {
-            ME.showError(e);
-        }
-    }
-
-    //TODO: make async
-    private loadBodyContent() {
-        const ME = this;
-
-        const COMPLETED = (
-            err: any,
-            data?: string, path?: string, size?: number,
-        ) => {
-            if (err) {
-                ME.showError(err);
-            } else {
-                ME.setBodyContentFromFile({
-                    data: data,
-                    mime: MimeTypes.lookup(path),
-                    path: path,
-                    size: size,
-                });
             }
-        };
+        }
+    }
 
-        try {
-            vscode.window.showOpenDialog({
-                canSelectFiles: true,
-                canSelectFolders: false,
-                canSelectMany: false,
-            }).then((files) => {
-                try {
-                    if (!files || files.length < 1) {
-                        return;
-                    }
+    private async loadBodyContent() {
+        const FILES = await vscode.window.showOpenDialog({
+            canSelectFiles: true,
+            canSelectFolders: false,
+            canSelectMany: false,
+        });
 
-                    FS.readFile(files[0].fsPath, (err, data) => {
-                        try {
-                            if (err) {
-                                COMPLETED(err);
-                            } else {
-                                COMPLETED(null,
-                                          data.toString('base64'), Path.resolve(files[0].fsPath), data.length);
-                            }
-                        } catch (e) {
-                            COMPLETED(e);
-                        }
-                    });
-                } catch (e) {
-                    COMPLETED(e);
-                }
-            }, (err) => {
-                COMPLETED(err);
+        if (FILES && FILES.length > 0) {
+            const PATH = FILES[0].fsPath;
+            const DATA = await FSExtra.readFile(PATH);
+
+            await this.setBodyContentFromFile({
+                data: DATA.toString('base64'),
+                mime: MimeTypes.lookup(PATH),
+                path: PATH,
+                size: DATA.length,
             });
-        } catch (e) {
-            COMPLETED(e);
         }
     }
 
@@ -420,29 +347,27 @@ export class HTTPRequest extends HTTPRequestBase {
      * @inheritdoc
      */
     protected async onDidReceiveMessage(msg: WebViewMessage) {
-        const ME = this;
-
         switch (msg.command) {
             case 'exportRequest':
-                ME.exportRequest( msg.data );
+                await this.exportRequest( msg.data );
                 break;
 
             case 'importRequest':
-                ME.importRequest();
+                await this.importRequest();
                 break;
 
             case 'loadBodyContent':
-                ME.loadBodyContent();
+                await this.loadBodyContent();
                 break;
 
             case 'log':
-                console.log( msg.data.message );
+                console.log(`[vscode-http-client] '${ msg.data.message }'`);
                 break;
 
             case 'onLoaded':
-                (async () => {
-                    if (!_.isNil(ME.startOptions.file)) {
-                        const FILE_PATH = ME.startOptions.file.fsPath;
+                {
+                    if (!_.isNil(this.startOptions.file)) {
+                        const FILE_PATH = this.startOptions.file.fsPath;
                         const OPTS: SetBodyContentFromFileOptions = {
                             data: (await FSExtra.readFile(FILE_PATH)).toString('base64'),
                             mime: MimeTypes.lookup(FILE_PATH),
@@ -450,37 +375,35 @@ export class HTTPRequest extends HTTPRequestBase {
                             size: (await FSExtra.lstat(FILE_PATH)).size,
                         };
 
-                        await ME.setBodyContentFromFile(OPTS);
+                        await this.setBodyContentFromFile(OPTS);
                     }
 
-                    if (!_.isNil(ME.startOptions.body)) {
-                        await ME.postMessage('setBodyContent', {
-                            data: ME.startOptions.body
+                    if (!_.isNil(this.startOptions.body)) {
+                        await this.postMessage('setBodyContent', {
+                            data: this.startOptions.body
                         });
                     }
 
-                    if (!_.isNil(ME.startOptions.data)) {
-                        await ME.postMessage('importRequestCompleted', ME.startOptions.data);
+                    if (!_.isNil(this.startOptions.data)) {
+                        await this.postMessage('importRequestCompleted', this.startOptions.data);
                     }
-                })().then(() => {}, (err) => {
-                    ME.showError(err);
-                });
+                }
                 break;
 
             case 'saveContent':
-                await ME.saveContent(msg.data);
+                await this.saveContent(msg.data);
                 break;
 
             case 'saveRawResponse':
-                await ME.saveRawResponse(msg.data);
+                await this.saveRawResponse(msg.data);
                 break;
 
             case 'sendRequest':
-                ME.sendRequest(msg.data);
+                this.sendRequest(msg.data);
                 break;
 
             case 'unsetBodyFromFile':
-                await ME.unsetBodyFromFile();
+                await this.unsetBodyFromFile();
                 break;
         }
     }
@@ -510,7 +433,7 @@ export class HTTPRequest extends HTTPRequestBase {
             vscode.postMessage({
                 command: 'log',
                 data: {
-                    message: '[vscode-http-client] ' + msg
+                    message: JSON.stringify(msg)
                 }
             });
         }
