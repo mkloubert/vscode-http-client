@@ -294,7 +294,7 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
         };
 
         const OPTS: vscode.SaveDialogOptions = {
-            saveLabel: 'Save response',
+            saveLabel: 'Save response content',
         };
 
         if (data.suggestedExtension) {
