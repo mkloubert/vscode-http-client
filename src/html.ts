@@ -39,14 +39,33 @@ export interface GenerateHeaderOptions extends ResourceUriResolver {
 }
 
 /**
+ * Options for 'generateHtmlDocument()' function.
+ */
+export interface GenerateHtmlDocumentOptions extends HeaderButtonResolver, ResourceUriResolver {
+    /**
+     * The function that generates the (body) content.
+     *
+     * @return {string} The content.
+     */
+    getContent?: () => string;
+    /**
+     * The (internal) name of the document.
+     */
+    name: string;
+}
+
+/**
  * Options for 'generateNavBarHeader()' function.
  */
-export interface GenerateNavBarHeaderOptions extends ResourceUriResolver {
-    /**
-     * Custom function to generate header buttons.
-     */
-    getHeaderButtons?: () => string;
+export interface GenerateNavBarHeaderOptions extends HeaderButtonResolver, ResourceUriResolver {
 }
+
+/**
+ * Function to generate header buttons.
+ *
+ * @return {string} The generated HTML code.
+ */
+export type GetHeaderButtonsFunction = () => string;
 
 /**
  * The function that returns the URI of a resource.
@@ -56,6 +75,16 @@ export interface GenerateNavBarHeaderOptions extends ResourceUriResolver {
  * @return {vscode.Uri} The URI.
  */
 export type GetResourceUriFunction = (path: string) => vscode.Uri;
+
+/**
+ * An object that can resolve the HTML code for header buttons.
+ */
+export interface HeaderButtonResolver {
+    /**
+     * Custom function to generate header buttons.
+     */
+    getHeaderButtons?: GetHeaderButtonsFunction;
+}
 
 /**
  * An object that resolves a resource URI.
@@ -134,6 +163,32 @@ export function generateHeader(opts: GenerateHeaderOptions) {
 }
 
 /**
+ * Generates a full HTML document.
+ *
+ * @param {GenerateHtmlDocumentOptions} opts Options.
+ *
+ * @return {string} The generated HTML code.
+ */
+export function generateHtmlDocument(opts: GenerateHtmlDocumentOptions) {
+    return `${ generateHeader({
+    getResourceUri: opts.getResourceUri,
+}) }
+
+${ generateNavBarHeader({
+    getHeaderButtons: opts.getHeaderButtons,
+    getResourceUri: opts.getResourceUri,
+}) }
+
+${ opts.getContent ? opts.getContent() : '' }
+
+${ generateFooter({
+    getResourceUri: opts.getResourceUri,
+    scriptFile: opts.name + '.js',
+    styleFile: opts.name + '.css',
+}) }`;
+}
+
+/**
  * Generates the common HTML for a header navbar.
  *
  * @param {GenerateNavBarHeaderOptions} opts Options.
@@ -157,7 +212,7 @@ export function generateNavBarHeader(opts: GenerateNavBarHeaderOptions) {
                     <i class="fa fa-github" aria-hidden="true"></i>
                 </a>
 
-                <a class="btn btn-dark btn-sm" href="https://twitter.com/mjkloubert" target="_blank" title="Follow Author's On Twitter">
+                <a class="btn btn-dark btn-sm" href="https://twitter.com/mjkloubert" target="_blank" title="Follow Author On Twitter">
                     <i class="fa fa-twitter" aria-hidden="true"></i>
                 </a>
 

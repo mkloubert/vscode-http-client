@@ -429,17 +429,119 @@ export class HTTPRequest extends HTTPRequestBase {
      * @inheritdoc
      */
     protected async onInitialize() {
-        const GET_RES_URI: vschc_html.GetResourceUriFunction = (path: string) => {
-            return this.getResourceUri(path);
-        };
+        this._html = vschc_html.generateHtmlDocument({
+            getContent: () => `
+<main role="main" class="container">
+    <div class="vschc-card card">
+        <div class="card-header bg-info text-white">
+            <span>Request Settings</span>
+        </div>
 
-        this._html += `${ vschc_html.generateHeader({
-    getResourceUri: GET_RES_URI,
-}) }
+        <div class="card-body">
+            <form>
+                <div class="form-group row">
+                    <label for="vschc-input-title" class="col-sm-2 col-form-label text-right">
+                        <span class="align-middle">Title:</span>
+                    </label>
 
-${ vschc_html.generateNavBarHeader({
-    getHeaderButtons: () => {
-        return `
+                    <div class="col-sm-10">
+                        <input type="url" class="form-control" id="vschc-input-title" placeholder="Title of that request">
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label for="vschc-input-url" class="col-sm-2 col-form-label text-right">
+                        <span class="align-middle">URL:</span>
+                    </label>
+
+                    <div class="col-sm-8">
+                        <input type="url" class="form-control" id="vschc-input-url" placeholder="https://example.com/resource/123">
+                    </div>
+
+                    <div class="col-sm-2">
+                        <select class="form-control" id="vschc-input-method">
+                            <option>DELETE</option>
+                            <option selected>GET</option>
+                            <option>HEAD</option>
+                            <option>OPTIONS</option>
+                            <option>PATCH</option>
+                            <option>POST</option>
+                            <option>PUT</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label for="vschc-input-body-text" id="vschc-input-body-text-label" class="col-sm-2 col-form-label text-right">Body:</label>
+
+                    <div class="col-sm-10" id="vschc-input-body-text-col" style="display: none;">
+                        <textarea class="form-control" id="vschc-input-body-text" rows="10"></textarea>
+                    </div>
+
+                    <div class="col-sm-10" id="vschc-input-body-file-col" style="display: none;">
+                        <div id="vschc-body-file-path"><a class="vschc-path" title="Click here to reset ..." href="#"></a>&nbsp;<span class="vschc-size"></span></div>
+                        <div id="vschc-body-file-content-to-display" style="display: none;"></div>
+                        <input type="hidden" id="vschc-input-body-file">
+                    </div>
+                </div>
+
+                <div class="form-group row" id="vschc-btn-from-file-col" style="display: none;">
+                    <label class="col-sm-2 text-right"></label>
+
+                    <div class="col-sm-10">
+                        <a class="btn btn-primary" id="vschc-btn-from-file" role="button">
+                            <i class="fa fa-file-text" aria-hidden="true"></i>
+                            <span>From file</span>
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="vschc-headers-card-accordion">
+        <div class="vschc-card card" id="vschc-headers-card">
+            <div class="card-header bg-info text-white" id="vschc-headers-card-heading">
+                <span class="align-middle" data-toggle="collapse" data-target="#vschc-headers-card-body" aria-expanded="true" aria-controls="vschc-headers-card-body">Custom Headers</span>
+
+                <a class="btn btn-danger btn-sm float-right" id="vschc-reset-all-headers-btn" title="Remove All Headers">
+                    <i class="fa fa-undo" aria-hidden="true"></i>
+                </a>
+            </div>
+
+            <div id="vschc-headers-card-body" class="collapse show" aria-labelledby="vschc-headers-card-heading" data-parent="#vschc-headers-card-accordion">
+                <div class="card-body"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-12 text-right" id="vschc-send-request-col">
+            <a class="btn btn-success" id="vschc-send-request" role="button">
+                <i class="fa fa-paper-plane" aria-hidden="true"></i>
+                <span>Send Request</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="vschc-card card" id="vschc-response-card">
+        <div class="card-header bg-info text-white">
+            <span class="align-middle">Response</span>
+
+            <a class="btn btn-danger btn-sm float-right" id="vschc-reset-response-btn" style="display: none;" title="Reset Response">
+                <i class="fa fa-eraser" aria-hidden="true"></i>
+            </a>
+            <a class="btn btn-dark btn-sm float-right" id="vschc-save-raw-response-btn" style="display: none;" title="Save Response">
+                <i class="fa fa-floppy-o" aria-hidden="true"></i>
+            </a>
+        </div>
+
+        <div class="card-body"></div>
+    </div>
+</main>
+`,
+            getHeaderButtons: () => {
+                return `
 <a class="btn btn-primary btn-sm" id="vschc-import-request-btn" title="Import Request">
     <i class="fa fa-download" aria-hidden="true"></i>
 </a>
@@ -448,124 +550,12 @@ ${ vschc_html.generateNavBarHeader({
     <i class="fa fa-upload" aria-hidden="true"></i>
 </a>
 `;
-    },
-    getResourceUri: GET_RES_URI,
-}) }
-
-    <main role="main" class="container">
-        <div class="vschc-card card">
-            <div class="card-header bg-info text-white">
-                <span>Request Settings</span>
-            </div>
-
-            <div class="card-body">
-                <form>
-                    <div class="form-group row">
-                        <label for="vschc-input-title" class="col-sm-2 col-form-label text-right">
-                            <span class="align-middle">Title:</span>
-                        </label>
-
-                        <div class="col-sm-10">
-                            <input type="url" class="form-control" id="vschc-input-title" placeholder="Title of that request">
-                        </div>
-                    </div>
-
-                    <div class="form-group row">
-                        <label for="vschc-input-url" class="col-sm-2 col-form-label text-right">
-                            <span class="align-middle">URL:</span>
-                        </label>
-
-                        <div class="col-sm-8">
-                            <input type="url" class="form-control" id="vschc-input-url" placeholder="https://example.com/resource/123">
-                        </div>
-
-                        <div class="col-sm-2">
-                            <select class="form-control" id="vschc-input-method">
-                                <option>DELETE</option>
-                                <option selected>GET</option>
-                                <option>HEAD</option>
-                                <option>OPTIONS</option>
-                                <option>PATCH</option>
-                                <option>POST</option>
-                                <option>PUT</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-group row">
-                        <label for="vschc-input-body-text" id="vschc-input-body-text-label" class="col-sm-2 col-form-label text-right">Body:</label>
-
-                        <div class="col-sm-10" id="vschc-input-body-text-col" style="display: none;">
-                            <textarea class="form-control" id="vschc-input-body-text" rows="10"></textarea>
-                        </div>
-
-                        <div class="col-sm-10" id="vschc-input-body-file-col" style="display: none;">
-                            <div id="vschc-body-file-path"><a class="vschc-path" title="Click here to reset ..." href="#"></a>&nbsp;<span class="vschc-size"></span></div>
-                            <div id="vschc-body-file-content-to-display" style="display: none;"></div>
-                            <input type="hidden" id="vschc-input-body-file">
-                        </div>
-                    </div>
-
-                    <div class="form-group row" id="vschc-btn-from-file-col" style="display: none;">
-                        <label class="col-sm-2 text-right"></label>
-
-                        <div class="col-sm-10">
-                            <a class="btn btn-primary" id="vschc-btn-from-file" role="button">
-                                <i class="fa fa-file-text" aria-hidden="true"></i>
-                                <span>From file</span>
-                            </a>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <div id="vschc-headers-card-accordion">
-            <div class="vschc-card card" id="vschc-headers-card">
-                <div class="card-header bg-info text-white" id="vschc-headers-card-heading">
-                    <span class="align-middle" data-toggle="collapse" data-target="#vschc-headers-card-body" aria-expanded="true" aria-controls="vschc-headers-card-body">Custom Headers</span>
-
-                    <a class="btn btn-danger btn-sm float-right" id="vschc-reset-all-headers-btn" title="Remove All Headers">
-                        <i class="fa fa-undo" aria-hidden="true"></i>
-                    </a>
-                </div>
-
-                <div id="vschc-headers-card-body" class="collapse show" aria-labelledby="vschc-headers-card-heading" data-parent="#vschc-headers-card-accordion">
-                    <div class="card-body"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-sm-12 text-right" id="vschc-send-request-col">
-                <a class="btn btn-success" id="vschc-send-request" role="button">
-                    <i class="fa fa-paper-plane" aria-hidden="true"></i>
-                    <span>Send Request</span>
-                </a>
-            </div>
-        </div>
-
-        <div class="vschc-card card" id="vschc-response-card">
-            <div class="card-header bg-info text-white">
-                <span class="align-middle">Response</span>
-
-                <a class="btn btn-danger btn-sm float-right" id="vschc-reset-response-btn" style="display: none;" title="Reset Response">
-                    <i class="fa fa-eraser" aria-hidden="true"></i>
-                </a>
-                <a class="btn btn-dark btn-sm float-right" id="vschc-save-raw-response-btn" style="display: none;" title="Save Response">
-                    <i class="fa fa-floppy-o" aria-hidden="true"></i>
-                </a>
-            </div>
-
-            <div class="card-body"></div>
-        </div>
-    </main>
-
-    ${ vschc_html.generateFooter({
-        getResourceUri: GET_RES_URI,
-        scriptFile: 'http-request.js',
-        styleFile: 'http-request.css',
-    }) }`;
+            },
+            getResourceUri: (path: string) => {
+                return this.getResourceUri(path);
+            },
+            name: 'http-request',
+        });
     }
 
     private async resetAllHeaders() {
