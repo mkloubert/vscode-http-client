@@ -76,7 +76,6 @@ body main .vschc-card {
 }
 
 #vschc-send-request .fa,
-body header nav.fixed-top form .btn .fa,
 #vschc-btn-from-file .fa,
 #vschc-save-response-btn .fa {
     margin-right: 8px;
@@ -84,4 +83,12 @@ body header nav.fixed-top form .btn .fa,
 
 #vschc-response-card .card-header .btn {
     margin-left: 8px;
+}
+
+#vschc-social-media-btns {
+    margin-left: 24px;
+}
+
+#vschc-social-media-btns .btn {
+    margin-left: 0 !important;
 }

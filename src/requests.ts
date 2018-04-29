@@ -24,6 +24,7 @@ const NormalizeHeaderCase = require("header-case-normalizer");
 import * as Path from 'path';
 import * as URL from 'url';
 import * as vschc from './extension';
+import * as vschc_html from './html';
 import * as vscode from 'vscode';
 import * as vscode_helpers from 'vscode-helpers';
 
@@ -428,65 +429,28 @@ export class HTTPRequest extends HTTPRequestBase {
      * @inheritdoc
      */
     protected async onInitialize() {
-        this._html += `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-
-    <link rel="stylesheet" href="${ this.getResourceUri('css/font-awesome.css') }">
-    <link rel="stylesheet" href="${ this.getResourceUri('css/hljs-atom-one-dark.css') }">
-    <link rel="stylesheet" href="${ this.getResourceUri('css/bootstrap.min.css') }">
-
-    <script src="${ this.getResourceUri('js/highlight.pack.js') }"></script>
-    <script src="${ this.getResourceUri('js/jquery.min.js') }"></script>
-    <script src="${ this.getResourceUri('js/bootstrap.bundle.min.js') }"></script>
-
-    <script>
-        const vscode = acquireVsCodeApi();
-
-        function vschc_log(msg) {
-            vscode.postMessage({
-                command: 'log',
-                data: {
-                    message: JSON.stringify(msg)
-                }
-            });
-        }
-
-        window.onerror = function() {
-            vschc_log(
-                JSON.stringify(arguments)
-            );
+        const GET_RES_URI: vschc_html.GetResourceUriFunction = (path: string) => {
+            return this.getResourceUri(path);
         };
 
-        const AJAX_LOADER_URL = ${ JSON.stringify( '' + this.getResourceUri('img/ajax-loader.gif') ) };
-    </script>
+        this._html += `${ vschc_html.generateHeader({
+    getResourceUri: GET_RES_URI,
+}) }
 
-    <title>HTTP Client</title>
-  </head>
-  <body>
-    <header>
-        <nav class="navbar navbar-dark fixed-top bg-dark">
-            <a class="navbar-brand" href="https://github.com/mkloubert/vscode-http-client" target="_blank">
-                <img src="${ this.getResourceUri('img/icon.svg') }" width="30" height="30" class="d-inline-block align-top" alt="">
-                <span>HTTP Client</span>
-            </a>
+${ vschc_html.generateNavBarHeader({
+    getHeaderButtons: () => {
+        return `
+<a class="btn btn-primary btn-sm" id="vschc-import-request-btn" title="Import Request">
+    <i class="fa fa-download" aria-hidden="true"></i>
+</a>
 
-            <form class="form-inline">
-                <a class="btn btn-secondary" id="vschc-import-request-btn">
-                    <i class="fa fa-download" aria-hidden="true"></i>
-                    <span>Import</span>
-                </a>
-
-                <a class="btn btn-primary" id="vschc-export-request-btn">
-                    <i class="fa fa-upload" aria-hidden="true"></i>
-                    <span>Export</span>
-                </a>
-            </form>
-        </nav>
-    </header>
+<a class="btn btn-secondary btn-sm" id="vschc-export-request-btn" title="Export Request">
+    <i class="fa fa-upload" aria-hidden="true"></i>
+</a>
+`;
+    },
+    getResourceUri: GET_RES_URI,
+}) }
 
     <main role="main" class="container">
         <div class="vschc-card card">
@@ -597,10 +561,11 @@ export class HTTPRequest extends HTTPRequestBase {
         </div>
     </main>
 
-    <link rel="stylesheet" href="${ this.getResourceUri('css/style.css') }">
-    <script src="${ this.getResourceUri('js/http-request.js') }"></script>
-  </body>
-</html>`;
+    ${ vschc_html.generateFooter({
+        getResourceUri: GET_RES_URI,
+        scriptFile: 'http-request.js',
+        styleFile: 'http-request.css',
+    }) }`;
     }
 
     private async resetAllHeaders() {
