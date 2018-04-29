@@ -206,7 +206,7 @@ jQuery(() => {
                         let suggestedExtension = RESPONSE.suggestedExtension;
 
                         if (RESPONSE.headers) {
-                            const CONTENT_TYPE = RESPONSE.headers[ 'content-type' ];
+                            const CONTENT_TYPE = RESPONSE.headers[ 'Content-Type' ];
                             if (CONTENT_TYPE) {
                                 const MIME = CONTENT_TYPE.toLowerCase().trim();
 
@@ -242,7 +242,7 @@ jQuery(() => {
                                         HTML_CODE.text(HTML);
 
                                         HTML_PRE.appendTo( CARD_BODY );
-                                        hljs.highlightBlock( HTML_CODE[0] );                                                                            
+                                        hljs.highlightBlock( HTML_CODE[0] );
                                     };
                                 } else if (MIME.startsWith('text/')) {
                                     contentDisplayer = () => {
@@ -277,7 +277,7 @@ jQuery(() => {
 
                             CARD_BODY.append( '<div class="clearfix" />' );
 
-                            const SAVE_BTN = jQuery('<a class="btn btn-primary" id="vschc-save-response-btn">Save</a>');
+                            const SAVE_BTN = jQuery('<a class="btn btn-primary" id="vschc-save-response-btn">Save content</a>');
                             SAVE_BTN.on('click', function() {
                                 vscode.postMessage({
                                     command: 'saveContent',
@@ -288,9 +288,16 @@ jQuery(() => {
                                 });
                             });
 
-                            SAVE_BTN.appendTo( CARD_BODY );
-                        }                        
-                    }
+                            SAVE_BTN.appendTo( CARD_BODY );                                                           
+                        }
+
+                        jQuery('#vschc-save-raw-response-btn').off('click').on('click', function() {
+                            vscode.postMessage({
+                                command: 'saveRawResponse',
+                                data: RESPONSE
+                            });
+                        }).show();
+                    }                    
 
                     const BTN = jQuery('#vschc-send-request');
                     BTN.removeClass('disabled');
@@ -302,6 +309,18 @@ jQuery(() => {
                 break;
 
             case 'setBodyContent':
+                {
+                    const CONTENT = MSG.data;
+
+                    const BODY_TEXT = jQuery('#vschc-input-body-text');
+                    BODY_TEXT.val( CONTENT.data );
+                    
+                    vschc_reset_body_file();                    
+                    vschc_update_body_area();
+                }
+                break;
+
+            case 'setBodyContentFromFile':
                 {
                     const CONTENT = MSG.data;
 
@@ -345,6 +364,8 @@ jQuery(() => {
             URL_FIELD.focus();
         } else {
             BTN.addClass('disabled');
+
+            jQuery('#vschc-save-raw-response-btn').hide();
 
             const CARD = jQuery('#vschc-response-card');
             const CARD_BODY = CARD.find('.card-body');
@@ -399,4 +420,10 @@ jQuery(() => {
 
 jQuery(() => {
     jQuery('#vschc-input-url').focus();
+});
+
+jQuery(() => {
+    vscode.postMessage({
+        command: 'onLoaded'            
+    });
 });

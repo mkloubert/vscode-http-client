@@ -17,6 +17,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+import * as _ from 'lodash';
 import * as FS from 'fs';
 import * as HTTP from 'http';
 import * as HTTPs from 'https';
@@ -51,7 +52,8 @@ interface SendRequestResponse {
 }
 
 interface StartOptions {
-    showOptions: vscode.ViewColumn;
+    body?: string;
+    showOptions?: vscode.ViewColumn;
 }
 
 interface WebViewMessage {
@@ -187,7 +189,8 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
 
         <div class="vschc-card card" id="vschc-response-card">
             <div class="card-header">
-                Response
+                <span class="align-middle">Response</span>
+                <a class="btn btn-primary btn-sm float-right" id="vschc-save-raw-response-btn" style="display: none;">Save raw response</a>
             </div>
 
             <div class="card-body">
@@ -212,7 +215,7 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
             if (err) {
                 ME.showError(err);
             } else {
-                ME.postMessage('setBodyContent', {
+                ME.postMessage('setBodyContentFromFile', {
                     data: data,
                     mime: MimeTypes.lookup(path),
                     path: path,
@@ -315,6 +318,55 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
         }
     }
 
+    private saveRawResponse(response: SendRequestResponse) {
+        const ME = this;
+
+        let http = `HTTP/${ response.httpVersion } ${ response.code } ${ response.status }\r\n`;
+
+        if (response.headers) {
+            for (const H in response.headers) {
+                http += `${H}: ${ response.headers[H] }\r\n`;
+            }
+        }
+
+        http += `\r\n`;
+
+        let dataToSave = new Buffer(http, 'ascii');
+        if (response.body) {
+            dataToSave = Buffer.concat([
+                dataToSave,
+                new Buffer(response.body, 'base64'),
+            ]);
+        }
+
+        try {
+            vscode.window.showSaveDialog({
+                filters: {
+                    'HTTP file': [ 'http' ]
+                },
+                saveLabel: 'Save raw response',
+            }).then((file) => {
+                if (!file) {
+                    return;
+                }
+
+                try {
+                    FS.writeFile(file.fsPath, dataToSave, (err) => {
+                        if (err) {
+                            ME.showError(err);
+                        }
+                    });
+                } catch (e) {
+                    ME.showError(e);
+                }
+            }, (err) => {
+                ME.showError(err);
+            });
+        } catch (e) {
+            ME.showError(e);
+        }
+    }
+
     private sendRequest(request: SendRequestData) {
         const ME = this;
         
@@ -326,13 +378,17 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
                 r = {
                     body: (BODY && BODY.length > 0) ? BODY.toString('base64') : null,
                     code: resp.statusCode,
-                    headers: resp.headers,
+                    headers: {},
                     httpVersion: resp.httpVersion,
                     suggestedExtension: false,
                     status: resp.statusMessage,
                 };
 
                 if (r.headers) {
+                    for (const H in resp.headers) {
+                        r.headers[ NormalizeHeaderCase(H) ] = resp.headers[H];
+                    }
+
                     r.suggestedExtension = MimeTypes.extension( resp.headers['content-type'] );
                 }
             }
@@ -433,15 +489,28 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
         }
     }
 
+    private showError(err: any) {
+        if (err) {
+            vscode.window.showErrorMessage(
+                `[ERROR] ${ vscode_helpers.toStringSafe(err) }`
+            );
+        }
+    }
+
     public async start(opts: StartOptions) {
         const ME = this;
+
+        let showOptions = opts.showOptions;
+        if (_.isNil(showOptions)) {
+            showOptions = vscode.ViewColumn.One;
+        }
 
         let newPanel: vscode.WebviewPanel;
         try {
             newPanel = vscode.window.createWebviewPanel(
                 'vscodeHTTPClient',
                 'New HTTP request',
-                opts.showOptions,
+                showOptions,
                 {
                     enableScripts: true,
                     retainContextWhenHidden: true,
@@ -465,8 +534,22 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
                         console.log( msg.data.message );
                         break;
 
+                    case 'onLoaded':
+                        {
+                            if (!_.isNil(opts.body)) {
+                                this.postMessage('setBodyContent', {
+                                    data: opts.body
+                                });
+                            }
+                        }
+                        break;
+
                     case 'saveContent':
                         ME.saveContent(msg.data);
+                        break;
+
+                    case 'saveRawResponse':
+                        ME.saveRawResponse(msg.data);
                         break;
 
                     case 'sendRequest':
@@ -489,14 +572,6 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
         }
     }
 
-    private showError(err: any) {
-        if (err) {
-            vscode.window.showErrorMessage(
-                `[ERROR] ${ vscode_helpers.toStringSafe(err) }`
-            );
-        }
-    }
-
     private unsetBodyFromFile() {
         const ME = this;
 
@@ -511,7 +586,7 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
             try {
                 if (selectedItem) {
                     if (1 === selectedItem.value) {
-                        ME.postMessage('setBodyContent', null);
+                        ME.postMessage('setBodyContentFromFile', null);
                     }
                 }
             } catch (e) {
@@ -528,7 +603,11 @@ class HTTPRequest extends vscode_helpers.DisposableBase {
 }
 
 
-async function startNewRequest(opts: StartOptions) {
+async function startNewRequest(opts?: StartOptions) {
+    if (!opts) {
+        opts = {};
+    }
+
     let request: HTTPRequest;
     try {
         request = new HTTPRequest();
@@ -545,16 +624,22 @@ export async function activate(context: vscode.ExtensionContext) {
     extension = context;
 
     extension.subscriptions.push(
-        vscode.commands.registerCommand('extension.http.client.newRequestSplit', async () => {
-            await startNewRequest({
-                showOptions: vscode.ViewColumn.Two,
-            });
+        vscode.commands.registerCommand('extension.http.client.newRequest', async () => {
+            await startNewRequest();
         }),
 
-        vscode.commands.registerCommand('extension.http.client.newRequestFullSize', async () => {
-            await startNewRequest({
-                showOptions: vscode.ViewColumn.One,
-            });
+        vscode.commands.registerCommand('extension.http.client.newRequestForActiveEditor', async () => {
+            const EDITOR = vscode.window.activeTextEditor;
+            if (EDITOR && EDITOR.document) {
+                await startNewRequest({
+                    body: EDITOR.document.getText(),
+                    showOptions: vscode.ViewColumn.Two,
+                });
+            } else {
+                vscode.window.showWarningMessage(
+                    'No active editor found!'
+                );
+            }
         }),
     );
 }
