@@ -28,6 +28,10 @@ import * as URL from 'url';
 import * as vscode from 'vscode';
 import * as vscode_helpers from 'vscode-helpers';
 
+interface Config extends vscode.WorkspaceConfiguration {
+    openOnStartup?: boolean;
+}
+
 interface SaveContentData {
     data: string;
     suggestedExtension: string | false;
@@ -62,6 +66,8 @@ interface WebViewMessage {
 }
 
 let extension: vscode.ExtensionContext;
+let isDeactivating = false;
+let workspaceWatcher: vscode_helpers.WorkspaceWatcherContext<Workspace>;
 
 class HTTPRequest extends vscode_helpers.DisposableBase {
     private _html: string;
@@ -620,29 +626,110 @@ async function startNewRequest(opts?: StartOptions) {
     }
 }
 
+class Workspace extends vscode_helpers.WorkspaceBase {
+    private _config: Config;
+    private _configSrc: vscode_helpers.WorkspaceConfigSource;
+    private _isReloadingConfig = false;
+
+    public get config() {
+        return this._config;
+    }
+
+    public get configSource() {
+        return this._configSrc;
+    }    
+
+    public async initialize() {
+        this._configSrc = {
+            section: 'http.client',
+            resource: vscode.Uri.file( Path.join(this.rootPath,
+                                                 '.vscode/settings.json') ),
+        };
+
+        await this.onDidChangeConfiguration();
+    }
+
+    public async onDidChangeConfiguration() {
+        const ME = this;
+
+        const MY_ARGS = arguments;
+
+        if (ME._isReloadingConfig) {
+            vscode_helpers.invokeAfter(async () => {
+                await ME.onDidChangeConfiguration
+                        .apply(ME, MY_ARGS);
+            }, 1000);
+
+            return;
+        }
+
+        ME._isReloadingConfig = true;
+        try {
+            let loadedCfg: Config = vscode.workspace.getConfiguration(ME.configSource.section,
+                                                                      ME.configSource.resource) || <any>{};
+
+            ME._config = loadedCfg;
+
+            if (vscode_helpers.toBooleanSafe(loadedCfg.openOnStartup)) {
+                await startNewRequest();
+            }
+        } finally {
+            ME._isReloadingConfig = false;
+        }
+    }
+}
+
 export async function activate(context: vscode.ExtensionContext) {
     extension = context;
 
-    extension.subscriptions.push(
-        vscode.commands.registerCommand('extension.http.client.newRequest', async () => {
-            await startNewRequest();
-        }),
+    const WF = vscode_helpers.buildWorkflow();
 
-        vscode.commands.registerCommand('extension.http.client.newRequestForActiveEditor', async () => {
-            const EDITOR = vscode.window.activeTextEditor;
-            if (EDITOR && EDITOR.document) {
-                await startNewRequest({
-                    body: EDITOR.document.getText(),
-                    showOptions: vscode.ViewColumn.Two,
-                });
-            } else {
-                vscode.window.showWarningMessage(
-                    'No active editor found!'
-                );
-            }
-        }),
-    );
+    WF.next(() => {
+        extension.subscriptions.push(
+            vscode.commands.registerCommand('extension.http.client.newRequest', async () => {
+                await startNewRequest();
+            }),
+
+            vscode.commands.registerCommand('extension.http.client.newRequestForActiveEditor', async () => {
+                const EDITOR = vscode.window.activeTextEditor;
+                if (EDITOR && EDITOR.document) {
+                    await startNewRequest({
+                        body: EDITOR.document.getText(),
+                        showOptions: vscode.ViewColumn.Two,
+                    });
+                } else {
+                    vscode.window.showWarningMessage(
+                        'No active editor found!'
+                    );
+                }
+            }),
+        );
+    });
+
+    WF.next(async () => {
+        extension.subscriptions.push(
+            workspaceWatcher = vscode_helpers.registerWorkspaceWatcher<Workspace>(context, async (event, folder, workspace?) => {
+                if (event == vscode_helpers.WorkspaceWatcherEvent.Added) {
+                    const NEW_WORKSPACE = new Workspace( folder );
+                    
+                    await NEW_WORKSPACE.initialize();
+                    
+                    return NEW_WORKSPACE;
+                }
+            })
+        );
+
+        await workspaceWatcher.reload();
+    });
+
+    if (!isDeactivating) {
+        await WF.start();
+    }
 }
 
 export async function deactivate() {
+    if (isDeactivating) {
+        return;
+    }
+    isDeactivating = true;
 }

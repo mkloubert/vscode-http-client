@@ -2,7 +2,7 @@
     "name": "vscode-http-client",
     "displayName": "HTTP Client",
     "description": "Simple way to do HTTP requests.",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "publisher": "mkloubert",
     "engines": {
         "vscode": "^1.23.0"
@@ -15,7 +15,8 @@
         "Client",
         "REST",
         "API",
-        "Requests"
+        "Requests",
+        "multi-root ready"
     ],
     "activationEvents": [
         "*"
@@ -33,7 +34,22 @@
                 "title": "Send editor content...",
                 "category": "HTTP Client"
             }
-        ]
+        ],
+        "configuration": {
+            "properties": {
+                "http.client": {
+                    "type": "object",
+                    "scope": "resource",
+                    "properties": {
+                        "openOnStartup": {
+                            "description": "Opens a new request on startup or not.",
+                            "type": "boolean",
+                            "default": false
+                        }
+                    }
+                }
+            }
+        }
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
