@@ -19,6 +19,7 @@
 
 import * as _ from 'lodash';
 import * as FSExtra from 'fs-extra';
+const MergeDeep = require('merge-deep');
 import * as Path from 'path';
 import * as OS from 'os';
 import * as vschc_requests from './requests';
@@ -30,6 +31,7 @@ import * as vscode_helpers from 'vscode-helpers';
 let extension: vscode.ExtensionContext;
 let isDeactivating = false;
 let workspaceWatcher: vscode_helpers.WorkspaceWatcherContext<vschc_workspaces.Workspace>;
+
 
 export function activate(context: vscode.ExtensionContext) {
     extension = context;
@@ -92,19 +94,12 @@ export function activate(context: vscode.ExtensionContext) {
             // newRequestFromFile
             vscode.commands.registerCommand('extension.http.client.newRequestFromFile', async () => {
                 try {
-                    const SELECTED_FILES = await vscode.window.showOpenDialog({
-                        canSelectFiles: true,
-                        canSelectFolders: false,
-                        canSelectMany: false,
-                        openLabel: 'Start request'
-                    });
-
-                    if (!SELECTED_FILES || SELECTED_FILES.length < 1) {
-                        return;
-                    }
-
-                    await vschc_requests.startNewRequest({
-                        file: SELECTED_FILES[0],
+                    await openFiles(async (files) => {
+                        await vschc_requests.startNewRequest({
+                            file: files[0],
+                        });
+                    }, {
+                        openLabel: 'Start request',
                     });
                 } catch (e) {
                     showError(e);
@@ -173,6 +168,75 @@ export function getUsersExtensionDir() {
             OS.homedir(), '.vscode-http-client'
         )
     );
+}
+
+/**
+ * Invokes an action for an 'oprn files' dialog.
+ *
+ * @param {Function} action The action to invoke.
+ * @param {vscode.OpenDialogOptions} [options] Custom options.
+ *
+ * @return {Promise<TResult>} The promise with the result of the action.
+ */
+export async function openFiles<TResult = any>(
+    action: (files: vscode.Uri[]) => TResult | PromiseLike<TResult>,
+    options?: vscode.OpenDialogOptions
+): Promise<TResult> {
+    const DEFAULT_OPTS: vscode.OpenDialogOptions = {
+        canSelectFiles: true,
+        canSelectFolders: false,
+        canSelectMany: false,
+        openLabel: 'Open',
+    };
+
+    try {
+        const EXT_DIR = getUsersExtensionDir();
+        if (await vscode_helpers.isDirectory(EXT_DIR)) {
+            DEFAULT_OPTS.defaultUri = vscode.Uri.file(EXT_DIR);
+        }
+    } catch { }
+
+    const OPTS: vscode.OpenDialogOptions = MergeDeep(DEFAULT_OPTS, options);
+
+    const FILES = await vscode.window.showOpenDialog(OPTS);
+    if (FILES && FILES.length > 0) {
+        return Promise.resolve(
+            action(FILES)
+        );
+    }
+}
+
+/**
+ * Invokes an action for an 'oprn files' dialog.
+ *
+ * @param {Function} action The action to invoke.
+ * @param {vscode.SaveDialogOptions} [options] Custom options.
+ *
+ * @return {Promise<TResult>} The promise with the result of the action.
+ */
+export async function saveFile<TResult = any>(
+    action: (file: vscode.Uri) => TResult | PromiseLike<TResult>,
+    options?: vscode.SaveDialogOptions
+): Promise<TResult> {
+    const DEFAULT_OPTS: vscode.SaveDialogOptions = {
+        saveLabel: 'Save',
+    };
+
+    try {
+        const EXT_DIR = getUsersExtensionDir();
+        if (await vscode_helpers.isDirectory(EXT_DIR)) {
+            DEFAULT_OPTS.defaultUri = vscode.Uri.file(EXT_DIR);
+        }
+    } catch { }
+
+    const OPTS: vscode.SaveDialogOptions = MergeDeep(DEFAULT_OPTS, options);
+
+    const FILE = await vscode.window.showSaveDialog(OPTS);
+    if (FILE) {
+        return Promise.resolve(
+            action(FILE)
+        );
+    }
 }
 
 /**

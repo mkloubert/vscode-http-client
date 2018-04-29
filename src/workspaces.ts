@@ -137,6 +137,9 @@ export class Workspace extends vscode_helpers.WorkspaceBase {
         }
     }
 
+    /**
+     * Opens all requests that should be opened on startup.
+     */
     public async openRequestsOnStartup() {
         const CFG = this.config;
         if (!CFG) {

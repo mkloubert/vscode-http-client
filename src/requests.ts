@@ -289,49 +289,36 @@ export class HTTPRequest extends HTTPRequestBase {
             JSON.stringify(request, null, 2), 'utf8'
         );
 
-        const FILE = await vscode.window.showSaveDialog({
+        await vschc.saveFile(async (file) => {
+            await FSExtra.writeFile(file.fsPath, DATA_TO_SAVE);
+        }, {
             filters: {
                 "HTTP Requests": [ 'http-request' ]
             },
             saveLabel: "Export request",
         });
-
-        if (FILE) {
-            await FSExtra.writeFile(FILE.fsPath, DATA_TO_SAVE);
-        }
     }
 
     private async importRequest() {
-        const FILES = await vscode.window.showOpenDialog({
-            canSelectFiles: true,
-            canSelectFolders: false,
-            canSelectMany: false,
-            filters: {
-                "HTTP Requests": [ 'http-request' ]
-            },
-            openLabel: "Import request",
-        });
-
-        if (FILES && FILES.length > 0) {
-            const DATA = (await FSExtra.readFile(FILES[0].fsPath)).toString('utf8');
+        await vschc.openFiles(async (files) => {
+            const DATA = (await FSExtra.readFile(files[0].fsPath)).toString('utf8');
             if (!vscode_helpers.isEmptyString(DATA)) {
                 const REQUEST: RequestData = JSON.parse( DATA );
                 if (REQUEST) {
                     await this.postMessage('importRequestCompleted', REQUEST);
                 }
             }
-        }
+        }, {
+            filters: {
+                "HTTP Requests": [ 'http-request' ]
+            },
+            openLabel: "Import request",
+        });
     }
 
     private async loadBodyContent() {
-        const FILES = await vscode.window.showOpenDialog({
-            canSelectFiles: true,
-            canSelectFolders: false,
-            canSelectMany: false,
-        });
-
-        if (FILES && FILES.length > 0) {
-            const PATH = FILES[0].fsPath;
+        await vschc.openFiles(async (files) => {
+            const PATH = files[0].fsPath;
             const DATA = await FSExtra.readFile(PATH);
 
             await this.setBodyContentFromFile({
@@ -340,7 +327,7 @@ export class HTTPRequest extends HTTPRequestBase {
                 path: PATH,
                 size: DATA.length,
             });
-        }
+        });
     }
 
     /**
@@ -561,11 +548,9 @@ export class HTTPRequest extends HTTPRequestBase {
             };
         }
 
-        const FILE = await vscode.window.showSaveDialog(OPTS);
-
-        if (FILE) {
-            await FS.writeFile(FILE.fsPath, new Buffer(data.data, 'base64'));
-        }
+        await vschc.saveFile(async (file) => {
+            await FS.writeFile(file.fsPath, new Buffer(data.data, 'base64'));
+        }, OPTS);
     }
 
     private async saveRawResponse(response: SendRequestResponse) {
@@ -587,16 +572,14 @@ export class HTTPRequest extends HTTPRequestBase {
             ]);
         }
 
-        const FILE = await vscode.window.showSaveDialog({
+        await vschc.saveFile(async (file) => {
+            await FSExtra.writeFile(file.fsPath, dataToSave);
+        }, {
             filters: {
                 'HTTP file': [ 'http' ]
             },
             saveLabel: 'Save raw response',
         });
-
-        if (FILE) {
-            await FSExtra.writeFile(FILE.fsPath, dataToSave);
-        }
     }
 
     private sendRequest(request: RequestData) {

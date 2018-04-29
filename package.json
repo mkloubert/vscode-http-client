@@ -2,7 +2,7 @@
     "name": "vscode-http-client",
     "displayName": "HTTP Client",
     "description": "Simple way to do HTTP requests.",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "publisher": "mkloubert",
     "engines": {
         "vscode": "^1.23.0"
@@ -143,6 +143,7 @@
         "fs-extra": "^5.0.0",
         "header-case-normalizer": "^1.0.3",
         "lodash": "^4.17.10",
+        "merge-deep": "^3.0.1",
         "mime-types": "^2.1.18",
         "vscode-helpers": "^1.10.0"
     }
