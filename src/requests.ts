@@ -505,12 +505,16 @@ export class HTTPRequest extends HTTPRequestBase {
             </div>
         </div>
 
-        <div class="vschc-card card" id="vschc-headers-card">
-            <div class="card-header">
-                Custom Headers
-            </div>
+        <div id="vschc-headers-card-accordion">
+            <div class="vschc-card card" id="vschc-headers-card">
+                <div class="card-header" id="vschc-headers-card-heading" data-toggle="collapse" data-target="#vschc-headers-card-body" aria-expanded="true" aria-controls="vschc-headers-card-body">
+                    Custom Headers
+                </div>
 
-            <div class="card-body"></div>
+                <div id="vschc-headers-card-body" class="collapse show" aria-labelledby="vschc-headers-card-heading" data-parent="#vschc-headers-card-accordion">
+                    <div class="card-body"></div>
+                </div>
+            </div>
         </div>
 
         <div class="row">

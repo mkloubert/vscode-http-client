@@ -67,3 +67,7 @@ body main .vschc-card {
 #vschc-body-file-content-to-display {
     margin-top: 8px;
 }
+
+#vschc-headers-card-heading {
+    cursor: pointer;
+}
