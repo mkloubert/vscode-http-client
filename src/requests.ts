@@ -23,22 +23,41 @@ import * as MimeTypes from 'mime-types';
 const NormalizeHeaderCase = require("header-case-normalizer");
 import * as Path from 'path';
 import * as URL from 'url';
+import * as vschc from './extension';
 import * as vscode from 'vscode';
 import * as vscode_helpers from 'vscode-helpers';
 
 
+/**
+ * Request data.
+ */
+export interface RequestData {
+    /**
+     * The body.
+     */
+    body: {
+        /**
+         * The content for the body field.
+         */
+        content: string | false;
+    };
+    /**
+     * Headers.
+     */
+    headers: any;
+    /**
+     * The HTTP method.
+     */
+    method: string;
+    /**
+     * The URL.
+     */
+    url: string;
+}
+
 interface SaveContentData {
     data: string;
     suggestedExtension: string | false;
-}
-
-interface SendRequestData {
-    body: {
-        content: string | false;
-    };
-    headers: any;
-    method: string;
-    url: string;
 }
 
 interface SendRequestResponse {
@@ -59,6 +78,10 @@ export interface StartNewRquestOptions {
      */
     body?: string;
     /**
+     * Initial data.
+     */
+    data?: RequestData;
+    /**
      * Display options for the tab of the underlying view.
      */
     showOptions?: vscode.ViewColumn;
@@ -78,12 +101,90 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
     private _panel: vscode.WebviewPanel;
     private _resourceRoot: string;
 
+    private exportRequest(request: RequestData) {
+        const ME = this;
+
+        try {
+            delete request.body;
+
+            const DATA_TO_SAVE = new Buffer(
+                JSON.stringify(request, null, 2), 'utf8'
+            );
+
+            vscode.window.showSaveDialog({
+                filters: {
+                    "HTTP Requests": [ 'http-request' ]
+                },
+                saveLabel: "Export request",
+            }).then((file) => {
+                if (!file) {
+                    return;
+                }
+
+                try {
+                    FS.writeFile(file.fsPath, DATA_TO_SAVE, (err) => {
+                        if (err) {
+                            ME.showError(err);
+                        }
+                    });
+                } catch (e) {
+                    ME.showError(e);
+                }
+            }, (err) => {
+                ME.showError(err);
+            });
+        } catch (e) {
+            ME.showError(e);
+        }
+    }
+
     private getResourceUri(p: string): vscode.Uri {
         return vscode.Uri.file(
             Path.join(this._resourceRoot, p)
         ).with({
             scheme: 'vscode-resource'
         });
+    }
+
+    private importRequest() {
+        const ME = this;
+
+        try {
+            vscode.window.showOpenDialog({
+                canSelectFiles: true,
+                canSelectFolders: false,
+                canSelectMany: false,
+                filters: {
+                    "HTTP Requests": [ 'http-request' ]
+                },
+                openLabel: "Import request",
+            }).then((files) => {
+                if (!files || files.length < 1) {
+                    return;
+                }
+
+                try {
+                    FS.readFile(files[0].fsPath, (err, data) => {
+                        if (err) {
+                            ME.showError(err);
+                        } else {
+                            try {
+                                const REQUEST: RequestData = JSON.parse( data.toString('utf8') );
+                                if (REQUEST) {
+                                    ME.postMessage('importRequestCompleted', REQUEST);
+                                }
+                            } catch (e) {
+                                ME.showError(err);
+                            }
+                        }
+                    });
+                } catch (e) {
+                    ME.showError(e);
+                }
+            });
+        } catch (e) {
+            ME.showError(e);
+        }
     }
 
     /**
@@ -114,7 +215,7 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
             vscode.postMessage({
                 command: 'log',
                 data: {
-                    message: msg
+                    message: '[vscode-http-client] ' + msg
                 }
             });
         }
@@ -126,11 +227,17 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
   </head>
   <body>
     <header>
-        <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+        <nav class="navbar navbar-dark fixed-top bg-dark">
             <a class="navbar-brand" href="https://github.com/mkloubert/vscode-http-client" target="_blank">
                 <img src="${ this.getResourceUri('img/icon.svg') }" width="30" height="30" class="d-inline-block align-top" alt="">
                 <span>HTTP Client</span>
             </a>
+
+            <form class="form-inline">
+                <a class="btn btn-secondary" id="vschc-import-request-btn">Import</a>
+
+                <a class="btn btn-primary" id="vschc-export-request-btn">Export</a>
+            </form>
         </nav>
     </header>
 
@@ -391,7 +498,7 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
         }
     }
 
-    private sendRequest(request: SendRequestData) {
+    private sendRequest(request: RequestData) {
         const ME = this;
 
         const COMPLETED = async (err: any, resp?: HTTP.ClientResponse) => {
@@ -517,12 +624,8 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
         }
     }
 
-    private showError(err: any) {
-        if (err) {
-            vscode.window.showErrorMessage(
-                `[ERROR] ${ vscode_helpers.toStringSafe(err) }`
-            );
-        }
+    private async showError(err: any) {
+        return vschc.showError(err);
     }
 
     /**
@@ -569,6 +672,14 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
 
             newPanel.webview.onDidReceiveMessage((msg: WebViewMessage) => {
                 switch (msg.command) {
+                    case 'exportRequest':
+                        ME.exportRequest( msg.data );
+                        break;
+
+                    case 'importRequest':
+                        ME.importRequest();
+                        break;
+
                     case 'loadBodyContent':
                         ME.loadBodyContent();
                         break;
@@ -580,9 +691,13 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
                     case 'onLoaded':
                         {
                             if (!_.isNil(opts.body)) {
-                                this.postMessage('setBodyContent', {
+                                ME.postMessage('setBodyContent', {
                                     data: opts.body
                                 });
+                            }
+
+                            if (!_.isNil(opts.data)) {
+                                ME.postMessage('importRequestCompleted', opts.data);
                             }
                         }
                         break;

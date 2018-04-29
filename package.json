@@ -2,7 +2,7 @@
     "name": "vscode-http-client",
     "displayName": "HTTP Client",
     "description": "Simple way to do HTTP requests.",
-    "version": "0.0.6",
+    "version": "0.0.7",
     "publisher": "mkloubert",
     "engines": {
         "vscode": "^1.23.0"
@@ -26,12 +26,12 @@
         "commands": [
             {
                 "command": "extension.http.client.newRequest",
-                "title": "New request ...",
+                "title": "New HTTP request ...",
                 "category": "HTTP Client"
             },
             {
-                "command": "extension.http.client.newRequestForActiveEditor",
-                "title": "Send editor content...",
+                "command": "extension.http.client.newRequestForEditor",
+                "title": "Start HTTP request for editor...",
                 "category": "HTTP Client"
             }
         ],
@@ -41,7 +41,34 @@
                     "type": "object",
                     "scope": "resource",
                     "properties": {
-                        "openOnStartup": {
+                        "open": {
+                            "description": "Defines one or more files to open on startup.",
+                            "oneOf": [
+                                {
+                                    "description": "One or more of settings for files to open on startup.",
+                                    "type": "array",
+                                    "items": {
+                                        "oneOf": [
+                                            {
+                                                "description": "The path to the file to open.",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "description": "Settings for a file to open on startup.",
+                                                "type": "object",
+                                                "properties": {
+                                                    "file": {
+                                                        "description": "The path to the file to open.",
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "openNewStartup": {
                             "description": "Opens a new request on startup or not.",
                             "type": "boolean",
                             "default": false
@@ -49,6 +76,26 @@
                     }
                 }
             }
+        },
+        "menus": {
+            "editor/context": [
+                {
+                    "command": "extension.http.client.newRequestForEditor",
+                    "group": "httpclient"
+                }
+            ],
+            "editor/title": [
+                {
+                    "command": "extension.http.client.newRequestForEditor",
+                    "group": "httpclient"
+                }
+            ],
+            "explorer/context": [
+                {
+                    "command": "extension.http.client.newRequestForEditor",
+                    "group": "httpclient"
+                }
+            ]
         }
     },
     "scripts": {
@@ -78,6 +125,7 @@
     },
     "readmeFilename": "README.md",
     "devDependencies": {
+        "@types/fs-extra": "^5.0.2",
         "@types/lodash": "^4.14.108",
         "@types/mime-types": "^2.1.0",
         "@types/mocha": "^2.2.42",
@@ -87,6 +135,7 @@
         "vscode": "^1.1.6"
     },
     "dependencies": {
+        "fs-extra": "^5.0.0",
         "header-case-normalizer": "^1.0.3",
         "lodash": "^4.17.10",
         "mime-types": "^2.1.18",

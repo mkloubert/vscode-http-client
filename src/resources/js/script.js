@@ -95,6 +95,43 @@ function vschc_body_content() {
     return content;
 }
 
+function vschc_get_headers() {
+    const HEADERS = {};
+
+    const HEADERS_CARD = jQuery('#vschc-headers-card');
+    const HEADERS_CARD_BODY = HEADERS_CARD.find('.card-body');
+
+    HEADERS_CARD_BODY.find('table tbody tr.vschc-header-row').each(function() {
+        const ROW = jQuery(this);
+
+        const NAME = ROW.find('.vschc-name input').val();
+        if (NAME) {
+            HEADERS[ ('' + NAME).trim() ] = ROW.find('.vschc-value input').val();
+        }
+    });
+
+    return HEADERS;
+}
+
+function vschc_prepare_request() {
+    const URL_FIELD = jQuery('#vschc-input-url');
+    const METHOD_FIELD = jQuery('#vschc-input-method');
+
+    let url = URL_FIELD.val();
+    if (url) {
+        url = url.trim();
+    }
+
+    return {
+        body: {
+            content: vschc_body_content()
+        },
+        headers: vschc_get_headers(),
+        method: METHOD_FIELD.val(),
+        url: url
+    };
+}
+
 function vschc_remove_empty_headers() {
     const HEADERS_CARD = jQuery('#vschc-headers-card');
     const HEADERS_CARD_BODY = HEADERS_CARD.find('.card-body');
@@ -160,33 +197,9 @@ function vschc_send_request() {
             AJAX_LOADER.appendTo( CARD_BODY );
         }
 
-        const METHOD_FIELD = jQuery('#vschc-input-method');
-
-        const HEADERS = {};
-        {
-            const HEADERS_CARD = jQuery('#vschc-headers-card');
-            const HEADERS_CARD_BODY = HEADERS_CARD.find('.card-body');
-
-            HEADERS_CARD_BODY.find('table tbody tr.vschc-header-row').each(function() {
-                const ROW = jQuery(this);
-
-                const NAME = ROW.find('.vschc-name input').val();
-                if (NAME) {
-                    HEADERS[ ('' + NAME).toLowerCase().trim() ] = ROW.find('.vschc-value input').val();
-                }
-            });
-        }
-
         vscode.postMessage({
             command: 'sendRequest',
-            data: {
-                body: {
-                    content: vschc_body_content()
-                },
-                headers: HEADERS,
-                method: METHOD_FIELD.val(),
-                url: URL_FIELD.val().trim()
-            }
+            data: vschc_prepare_request()
         });
     }
 }
@@ -201,10 +214,12 @@ function vschc_update_body_area() {
 
     if (BODY_FILE_VAL && BODY_FILE_VAL.length > 0) {
         COL_FILE_TEXT.show();
+
         COL_BODY_TEXT.hide();
         COL_FROM_FILE.hide();
     } else {
         COL_FILE_TEXT.hide();
+
         COL_BODY_TEXT.show();
         COL_FROM_FILE.show();
     }
@@ -212,6 +227,8 @@ function vschc_update_body_area() {
 
 jQuery(() => {
     window.addEventListener('message', (e) => {
+        vschc_log('Message: ' + JSON.stringify(e));
+
         if (!e) {
             return;
         }
@@ -222,6 +239,48 @@ jQuery(() => {
         }
 
         switch (MSG.command) {
+            case 'importRequestCompleted':
+                {
+                    const REQUEST = MSG.data;
+
+                    let headers = REQUEST.headers;
+                    let method = REQUEST.method;
+                    let url = REQUEST.url;
+
+                    if (!method) {
+                        method = 'GET';
+                    }
+                    if (!url) {
+                        url = '';
+                    }
+
+                    if (!headers) {
+                        headers = {};
+                    }
+                    {
+                        const HEADERS_CARD = jQuery('#vschc-headers-card');
+                        const HEADERS_CARD_BODY = HEADERS_CARD.find('.card-body');
+
+                        HEADERS_CARD_BODY.find('table tbody tr.vschc-header-row').remove();
+
+                        for (const H in headers) {
+                            const NAME = '' + H;
+                            if ('' !== NAME.trim()) {
+                                vschc_add_header_row(NAME, headers[H]);
+                            }
+                        }
+                    }
+
+                    jQuery('#vschc-input-url').val( '' + url );
+                    jQuery('#vschc-input-method').val( ('' + method).toUpperCase().trim() );
+
+                    vschc_reset_body_file();
+                    jQuery('#vschc-input-body-text').val('');
+
+                    vschc_update_body_area();
+                }
+                break;
+
             case 'sendRequestCompleted':
                 {
                     const RESPONSE_DATA = MSG.data;
@@ -420,6 +479,19 @@ jQuery(() => {
 
             vschc_send_request();
         }
+    });
+
+    jQuery('#vschc-export-request-btn').on('click', function() {
+        vscode.postMessage({
+            command: 'exportRequest',
+            data: vschc_prepare_request()
+        });
+    });
+
+    jQuery('#vschc-import-request-btn').on('click', function() {
+        vscode.postMessage({
+            command: 'importRequest'
+        });
     });
 });
 

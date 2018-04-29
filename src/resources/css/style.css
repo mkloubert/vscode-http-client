@@ -2,6 +2,10 @@ body header .navbar .navbar-brand span {
     margin-left: 8px;
 }
 
+body header .navbar form .btn {
+    margin-left: 8px;
+}
+
 body main {
     padding-top: 70px;
 }
