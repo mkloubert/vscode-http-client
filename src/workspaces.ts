@@ -76,6 +76,11 @@ export class Workspace extends vscode_helpers.WorkspaceBase {
         return this._configSrc;
     }
 
+    /**
+     * Execute 'openRequestsOnStartup()' method when reloading config or not.
+     */
+    public executeOpenRequestsOnStartup = false;
+
     public getExistingPath(p: string) {
         p = vscode_helpers.toStringSafe(p);
 
@@ -132,6 +137,10 @@ export class Workspace extends vscode_helpers.WorkspaceBase {
                                                                       ME.configSource.resource) || <any>{};
 
             ME._config = loadedCfg;
+
+            if (ME.executeOpenRequestsOnStartup) {
+                await ME.openRequestsOnStartup();
+            }
         } finally {
             ME._isReloadingConfig = false;
         }

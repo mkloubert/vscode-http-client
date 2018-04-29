@@ -37,6 +37,9 @@ body main .vschc-card {
 
 .card .form-group.row label {
     padding: 0;
+}
+
+#vschc-input-body-text-label {
     vertical-align: top;
 }
 
@@ -68,6 +71,17 @@ body main .vschc-card {
     margin-top: 8px;
 }
 
-#vschc-headers-card-heading {
+#vschc-headers-card-heading span {
     cursor: pointer;
+}
+
+#vschc-send-request .fa,
+body header nav.fixed-top form .btn .fa,
+#vschc-btn-from-file .fa,
+#vschc-save-response-btn .fa {
+    margin-right: 8px;
+}
+
+#vschc-response-card .card-header .btn {
+    margin-left: 8px;
 }

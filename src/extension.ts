@@ -131,7 +131,11 @@ export function activate(context: vscode.ExtensionContext) {
             for (const WF of workspaceWatcher.workspaces) {
                 try {
                     if (!WF.isInFinalizeState) {
-                        await WF.openRequestsOnStartup();
+                        try {
+                            await WF.openRequestsOnStartup();
+                        } finally {
+                            WF.executeOpenRequestsOnStartup = true;
+                        }
                     }
                 } catch (e) {
                     showError(e);
@@ -146,6 +150,34 @@ export function activate(context: vscode.ExtensionContext) {
         WF.start().then(() => {}, (err) => {
             showError(err);
         });
+    }
+}
+
+/**
+ * Shows a confirm window.
+ *
+ * @param {Function} action The action to invoke.
+ * @param {string} prompt The promt text.
+ *
+ * @return {Promise<TResult>} The promise with the result of the action.
+ */
+export async function confirm<TResult = any>(
+    action: (yes: boolean) => TResult | PromiseLike<TResult>,
+    prompt: string
+): Promise<TResult> {
+    const SELECTED_ITEM = await vscode.window.showWarningMessage(prompt, {
+        title: 'No',
+        isCloseAffordance: true,
+        value: 0,
+    }, {
+        title: 'Yes',
+        value: 1,
+    });
+
+    if (SELECTED_ITEM) {
+        return await Promise.resolve(
+            action(1 === SELECTED_ITEM.value)
+        );
     }
 }
 

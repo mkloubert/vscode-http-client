@@ -16,7 +16,6 @@
  */
 
 import * as _ from 'lodash';
-import * as FS from 'fs';
 import * as FSExtra from 'fs-extra';
 import * as HTTP from 'http';
 import * as HTTPs from 'https';
@@ -377,6 +376,14 @@ export class HTTPRequest extends HTTPRequestBase {
                 }
                 break;
 
+            case 'resetAllHeaders':
+                await this.resetAllHeaders();
+                break;
+
+            case 'resetResponse':
+                await this.resetResponse();
+                break;
+
             case 'saveContent':
                 await this.saveContent(msg.data);
                 break;
@@ -406,6 +413,7 @@ export class HTTPRequest extends HTTPRequestBase {
 
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
+    <link rel="stylesheet" href="${ this.getResourceUri('css/font-awesome.css') }">
     <link rel="stylesheet" href="${ this.getResourceUri('css/hljs-atom-one-dark.css') }">
     <link rel="stylesheet" href="${ this.getResourceUri('css/bootstrap.min.css') }">
 
@@ -445,17 +453,23 @@ export class HTTPRequest extends HTTPRequestBase {
             </a>
 
             <form class="form-inline">
-                <a class="btn btn-secondary" id="vschc-import-request-btn">Import</a>
+                <a class="btn btn-secondary" id="vschc-import-request-btn">
+                    <i class="fa fa-download" aria-hidden="true"></i>
+                    <span>Import</span>
+                </a>
 
-                <a class="btn btn-primary" id="vschc-export-request-btn">Export</a>
+                <a class="btn btn-primary" id="vschc-export-request-btn">
+                    <i class="fa fa-upload" aria-hidden="true"></i>
+                    <span>Export</span>
+                </a>
             </form>
         </nav>
     </header>
 
     <main role="main" class="container">
         <div class="vschc-card card">
-            <div class="card-header">
-                Request Settings
+            <div class="card-header bg-info text-white">
+                <span>Request Settings</span>
             </div>
 
             <div class="card-body">
@@ -481,7 +495,7 @@ export class HTTPRequest extends HTTPRequestBase {
                     </div>
 
                     <div class="form-group row">
-                        <label for="vschc-input-body-text" class="col-sm-2 col-form-label text-right">Body:</label>
+                        <label for="vschc-input-body-text" id="vschc-input-body-text-label" class="col-sm-2 col-form-label text-right">Body:</label>
 
                         <div class="col-sm-10" id="vschc-input-body-text-col" style="display: none;">
                             <textarea class="form-control" id="vschc-input-body-text" rows="10"></textarea>
@@ -498,7 +512,10 @@ export class HTTPRequest extends HTTPRequestBase {
                         <label class="col-sm-2 text-right"></label>
 
                         <div class="col-sm-10">
-                            <a class="btn btn-primary" id="vschc-btn-from-file" role="button">From file</a>
+                            <a class="btn btn-primary" id="vschc-btn-from-file" role="button">
+                                <i class="fa fa-file-text" aria-hidden="true"></i>
+                                <span>From file</span>
+                            </a>
                         </div>
                     </div>
                 </form>
@@ -507,8 +524,12 @@ export class HTTPRequest extends HTTPRequestBase {
 
         <div id="vschc-headers-card-accordion">
             <div class="vschc-card card" id="vschc-headers-card">
-                <div class="card-header" id="vschc-headers-card-heading" data-toggle="collapse" data-target="#vschc-headers-card-body" aria-expanded="true" aria-controls="vschc-headers-card-body">
-                    Custom Headers
+                <div class="card-header bg-info text-white" id="vschc-headers-card-heading">
+                    <span class="align-middle" data-toggle="collapse" data-target="#vschc-headers-card-body" aria-expanded="true" aria-controls="vschc-headers-card-body">Custom Headers</span>
+
+                    <a class="btn btn-danger btn-sm float-right" id="vschc-reset-all-headers-btn" title="Remove All Headers">
+                        <i class="fa fa-undo" aria-hidden="true"></i>
+                    </a>
                 </div>
 
                 <div id="vschc-headers-card-body" class="collapse show" aria-labelledby="vschc-headers-card-heading" data-parent="#vschc-headers-card-accordion">
@@ -519,26 +540,53 @@ export class HTTPRequest extends HTTPRequestBase {
 
         <div class="row">
             <div class="col-sm-12 text-right" id="vschc-send-request-col">
-                <a class="btn btn-success" id="vschc-send-request" role="button">Send Request</a>
+                <a class="btn btn-success" id="vschc-send-request" role="button">
+                    <i class="fa fa-paper-plane" aria-hidden="true"></i>
+                    <span>Send Request</span>
+                </a>
             </div>
         </div>
 
         <div class="vschc-card card" id="vschc-response-card">
-            <div class="card-header">
+            <div class="card-header bg-info text-white">
                 <span class="align-middle">Response</span>
-                <a class="btn btn-primary btn-sm float-right" id="vschc-save-raw-response-btn" style="display: none;">Save raw response</a>
+
+                <a class="btn btn-danger btn-sm float-right" id="vschc-reset-response-btn" style="display: none;" title="Reset Response">
+                    <i class="fa fa-eraser" aria-hidden="true"></i>
+                </a>
+                <a class="btn btn-dark btn-sm float-right" id="vschc-save-raw-response-btn" style="display: none;" title="Save Response">
+                    <i class="fa fa-floppy-o" aria-hidden="true"></i>
+                </a>
             </div>
 
-            <div class="card-body">
-                No request started yet
-            </div>
+            <div class="card-body"></div>
         </div>
     </main>
 
     <link rel="stylesheet" href="${ this.getResourceUri('css/style.css') }">
-    <script src="${ this.getResourceUri('js/script.js') }"></script>
+    <script src="${ this.getResourceUri('js/http-request.js') }"></script>
   </body>
 </html>`;
+    }
+
+    private async resetAllHeaders() {
+        const ME = this;
+
+        await vschc.confirm(async (yes) => {
+            if (yes) {
+                await ME.postMessage('resetAllHeadersCompleted');
+            }
+        }, 'Really remove all headers?');
+    }
+
+    private async resetResponse() {
+        const ME = this;
+
+        await vschc.confirm(async (yes) => {
+            if (yes) {
+                await ME.postMessage('resetResponseCompleted');
+            }
+        }, 'Are you sure to reset the current response?');
     }
 
     private async saveContent(data: SaveContentData) {
@@ -553,7 +601,7 @@ export class HTTPRequest extends HTTPRequestBase {
         }
 
         await vschc.saveFile(async (file) => {
-            await FS.writeFile(file.fsPath, new Buffer(data.data, 'base64'));
+            await FSExtra.writeFile(file.fsPath, new Buffer(data.data, 'base64'));
         }, OPTS);
     }
 
@@ -714,20 +762,13 @@ export class HTTPRequest extends HTTPRequestBase {
     }
 
     private async unsetBodyFromFile() {
-        const SELECTED_ITEM = await vscode.window.showWarningMessage('Do really want to unset the current body?', {
-            title: 'No',
-            isCloseAffordance: true,
-            value: 0,
-        }, {
-            title: 'Yes',
-            value: 1,
-        });
+        const ME = this;
 
-        if (SELECTED_ITEM) {
-            if (1 === SELECTED_ITEM.value) {
-                await this.setBodyContentFromFile(null);
+        await vschc.confirm(async (yes) => {
+            if (yes) {
+                await ME.setBodyContentFromFile(null);
             }
-        }
+        }, 'Do really want to unset the current body?');
     }
 }
 

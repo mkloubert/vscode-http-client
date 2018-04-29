@@ -27,7 +27,9 @@ function vschc_add_header_row(name, value) {
     const VALUE_FIELD = jQuery('<input type="text" class="form-control" />');
     VALUE_FIELD.appendTo( NEW_ROW.find('.vschc-value') );
 
-    const REMOVE_BTN = jQuery('<a class="btn btn-sm btn-danger align-middle vschc-remove-btn" />').text('-');
+    const REMOVE_BTN = jQuery('<a class="btn btn-sm btn-warning align-middle vschc-remove-btn" title="Remove Header">' + 
+                              '<i class="fa fa-trash" aria-hidden="true"></i>' + 
+                              '</a>');
     REMOVE_BTN.on('click', function() {
         NEW_ROW.remove();
 
@@ -37,7 +39,9 @@ function vschc_add_header_row(name, value) {
     });
     REMOVE_BTN.appendTo( NEW_ROW.find('.vschc-actions') );
 
-    const ADD_BTN = jQuery('<a class="btn btn-sm btn-primary align-middle vschc-add-btn" />').text('+');
+    const ADD_BTN = jQuery('<a class="btn btn-sm btn-primary align-middle vschc-add-btn" title="Add New Header">' + 
+                           '<i class="fa fa-plus-circle" aria-hidden="true"></i>' + 
+                           '</a>');
     ADD_BTN.on('click', function() {
         vschc_add_header_row();
     });
@@ -177,6 +181,13 @@ function vschc_reset_headers() {
     vschc_add_header_row();
 }
 
+function vschc_reset_response() {
+    jQuery('#vschc-save-raw-response-btn').hide();
+    jQuery('#vschc-reset-response-btn').hide();
+
+    jQuery('#vschc-response-card .card-body').text( 'No request started yet.' );
+}
+
 function vschc_send_request() {
     const BTN = jQuery('#vschc-send-request');
 
@@ -188,6 +199,7 @@ function vschc_send_request() {
         BTN.addClass('disabled');
 
         jQuery('#vschc-save-raw-response-btn').hide();
+        jQuery('#vschc-reset-response-btn').hide();
 
         const CARD = jQuery('#vschc-response-card');
         const CARD_BODY = CARD.find('.card-body');
@@ -280,7 +292,17 @@ jQuery(() => {
                     jQuery('#vschc-input-body-text').val('');
 
                     vschc_update_body_area();
+
+                    jQuery('#vschc-input-url').focus();
                 }
+                break;
+
+            case 'resetAllHeadersCompleted':
+                vschc_reset_headers();
+                break;
+
+            case 'resetResponseCompleted':
+                vschc_reset_response();
                 break;
 
             case 'sendRequestCompleted':
@@ -393,7 +415,10 @@ jQuery(() => {
 
                             CARD_BODY.append( '<div class="clearfix" />' );
 
-                            const SAVE_BTN = jQuery('<a class="btn btn-primary" id="vschc-save-response-btn">Save content</a>');
+                            const SAVE_BTN = jQuery('<a class="btn btn-primary" id="vschc-save-response-btn">' + 
+                                                    '<i class="fa fa-floppy-o" aria-hidden="true"></i>' + 
+                                                    '<span>Save Content</span>' + 
+                                                    '</a>');
                             SAVE_BTN.on('click', function() {
                                 vscode.postMessage({
                                     command: 'saveContent',
@@ -412,8 +437,10 @@ jQuery(() => {
                                 command: 'saveRawResponse',
                                 data: RESPONSE
                             });
-                        }).show();
-                    }                    
+                        }).show();                        
+                    }
+
+                    jQuery('#vschc-reset-response-btn').show();
 
                     const BTN = jQuery('#vschc-send-request');
                     BTN.removeClass('disabled');
@@ -521,12 +548,25 @@ jQuery(() => {
             command: 'importRequest'
         });
     });
+
+    jQuery('#vschc-reset-response-btn').on('click', function() {
+        vscode.postMessage({
+            command: 'resetResponse'
+        });
+    });
+
+    jQuery('#vschc-reset-all-headers-btn').on('click', function() {
+        vscode.postMessage({
+            command: 'resetAllHeaders'
+        });
+    });
 });
 
 jQuery(() => {
     vschc_reset_body_file();
     vschc_update_body_area();
     vschc_reset_headers();
+    vschc_reset_response();
 });
 
 jQuery(() => {

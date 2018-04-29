@@ -2,3 +2,4 @@
 Icons:
     - /icon.png (Vector Stall; https://www.iconfinder.com/vectorstock)
     - /img/share/* (https://simplesharingbuttons.com)
+    - /src/resources/css/font-awesome.css (https://fontawesome.com/v4.7.0/license/)
