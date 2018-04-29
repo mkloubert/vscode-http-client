@@ -7,7 +7,7 @@
 [![Installs](https://vsmarketplacebadge.apphb.com/installs/mkloubert.vscode-http-client.svg)](https://marketplace.visualstudio.com/items?itemName=mkloubert.vscode-http-client)
 [![Rating](https://vsmarketplacebadge.apphb.com/rating-short/mkloubert.vscode-http-client.svg)](https://marketplace.visualstudio.com/items?itemName=mkloubert.vscode-http-client#review-details)
 
-Simple does HTTP requests in [Visual Studio Code](https://code.visualstudio.com/).
+Simple way to do [HTTP requests](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol) in [Visual Studio Code](https://code.visualstudio.com/).
 
 ## Table of contents
 
