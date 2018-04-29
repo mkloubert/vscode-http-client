@@ -290,7 +290,7 @@ export class HTTPRequest extends vscode_helpers.DisposableBase {
 
                         <div class="col-sm-10" id="vschc-input-body-file-col" style="display: none;">
                             <div id="vschc-body-file-path"><a class="vschc-path" title="Click here to reset ..." href="#"></a>&nbsp;<span class="vschc-size"></span></div>
-                            <div id="vschc-body-file-content-to-display" style="display: none;" title="Click here to reset ..."></div>
+                            <div id="vschc-body-file-content-to-display" style="display: none;"></div>
                             <input type="hidden" id="vschc-input-body-file">
                         </div>
                     </div>

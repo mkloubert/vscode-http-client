@@ -493,7 +493,7 @@ jQuery(() => {
         });
     });
 
-    jQuery('#vschc-body-file-path .vschc-path, #vschc-body-file-content-to-display').on('click', function() {
+    jQuery('#vschc-body-file-path .vschc-path').on('click', function() {
         vscode.postMessage({
             command: 'unsetBodyFromFile'            
         });
