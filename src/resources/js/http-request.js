@@ -10,49 +10,111 @@ function vschc_add_header_row(name, value) {
         return;
     }
 
-    const TABLE_BODY = TABLE.find('tbody');
+    let controlToFocus = false;
 
-    const ID = ++vschcNextHeaderRowId;
+    if (arguments.length < 1) {
+        TABLE.find('tr.vschc-header-row').each(function() {
+            const ROW = jQuery(this);
 
-    const NEW_ROW = jQuery('<tr class="vschc-header-row">' + 
-                           '<td class="vschc-name" />' + 
-                           '<td class="vschc-value" />' + 
-                           '<td class="vschc-actions" />' + 
-                           '</tr>');
-    NEW_ROW.attr('id', 'vschc-header-row-' + ID);
+            const NAME_FIELD = ROW.find('.vschc-name input');
+            const NAME = NAME_FIELD.val();
 
-    const NAME_FIELD = jQuery('<input type="text" class="form-control" />');
-    NAME_FIELD.appendTo( NEW_ROW.find('.vschc-name') );
-    
-    const VALUE_FIELD = jQuery('<input type="text" class="form-control" />');
-    VALUE_FIELD.appendTo( NEW_ROW.find('.vschc-value') );
-
-    const REMOVE_BTN = jQuery('<a class="btn btn-sm btn-warning align-middle vschc-remove-btn" title="Remove Header">' + 
-                              '<i class="fa fa-trash" aria-hidden="true"></i>' + 
-                              '</a>');
-    REMOVE_BTN.on('click', function() {
-        NEW_ROW.remove();
-
-        if (TABLE_BODY.find('.vschc-header-row').length < 1) {
-            vschc_reset_headers();
-        }
-    });
-    REMOVE_BTN.appendTo( NEW_ROW.find('.vschc-actions') );
-
-    const ADD_BTN = jQuery('<a class="btn btn-sm btn-primary align-middle vschc-add-btn" title="Add New Header">' + 
-                           '<i class="fa fa-plus-circle" aria-hidden="true"></i>' + 
-                           '</a>');
-    ADD_BTN.on('click', function() {
-        vschc_add_header_row();
-    });
-    ADD_BTN.appendTo( NEW_ROW.find('.vschc-actions') );
-
-    if (arguments.length > 0) {
-        NAME_FIELD.val( name );
-        VALUE_FIELD.val( value );
+            if (!NAME || '' === NAME.trim()) {
+                if (!controlToFocus) {
+                    controlToFocus = NAME_FIELD;
+                }
+            }            
+        });
     }
 
-    NEW_ROW.appendTo( TABLE_BODY );
+    if (!controlToFocus) {
+        const TABLE_BODY = TABLE.find('tbody');
+
+        const ID = ++vschcNextHeaderRowId;
+
+        const NEW_ROW = jQuery('<tr class="vschc-header-row">' + 
+                            '<td class="vschc-name" />' + 
+                            '<td class="vschc-value" />' + 
+                            '<td class="vschc-actions" />' + 
+                            '</tr>');
+        NEW_ROW.attr('id', 'vschc-header-row-' + ID);
+
+        const NAME_FIELD = jQuery('<input type="text" class="form-control" />');
+        const VALUE_FIELD = jQuery('<input type="text" class="form-control" />');
+
+        NAME_FIELD.on('keyup', function(e) {
+            if (13 != e.which) {
+                return;
+            }
+            
+            e.preventDefault();
+
+            let controlToFocus = false;
+
+            const NAME = NAME_FIELD.val();
+            if (NAME && '' !== NAME.trim()) {
+                const VALUE = VALUE_FIELD.val();
+                if (!VALUE || '' === VALUE.trim()) {
+                    controlToFocus = VALUE_FIELD;
+                }
+            }
+
+            if (controlToFocus) {
+                controlToFocus.focus();
+            } else {
+                vschc_add_header_row();
+            }
+        });
+        NAME_FIELD.appendTo( NEW_ROW.find('.vschc-name') );
+        
+        VALUE_FIELD.on('keyup', function(e) {
+            if (13 != e.which) {
+                return;
+            }
+            
+            e.preventDefault();
+            
+            let controlToFocus = false;
+
+            const VALUE = VALUE_FIELD.val();
+            if (VALUE && '' !== VALUE.trim()) {
+                const NAME = NAME_FIELD.val();
+                if (!NAME || '' === NAME.trim()) {
+                    controlToFocus = NAME_FIELD;
+                }
+            }
+
+            if (controlToFocus) {
+                controlToFocus.focus();
+            } else {
+                vschc_add_header_row();
+            }
+        });
+        VALUE_FIELD.appendTo( NEW_ROW.find('.vschc-value') );
+
+        const REMOVE_BTN = jQuery('<a class="btn btn-sm btn-warning align-middle vschc-remove-btn" title="Remove Header">' + 
+                                '<i class="fa fa-trash" aria-hidden="true"></i>' + 
+                                '</a>');
+        REMOVE_BTN.on('click', function() {
+            NEW_ROW.remove();
+
+            vschc_update_header_area();
+        });
+        REMOVE_BTN.appendTo( NEW_ROW.find('.vschc-actions') );
+
+        if (arguments.length > 0) {
+            NAME_FIELD.val( name );
+            VALUE_FIELD.val( value );
+        }
+
+        NEW_ROW.appendTo( TABLE_BODY );
+
+        controlToFocus = NAME_FIELD;
+    }
+
+    if (controlToFocus) {
+        controlToFocus.focus();
+    }
 }
 
 function vschc_auto_add_content_type_header(mime) {
@@ -127,9 +189,13 @@ function vschc_prepare_request() {
         url = url.trim();
     }
 
+    const IS_FILE = jQuery('#vschc-input-body-file-col').is(':visible');
+
     return {
         body: {
-            content: vschc_body_content()
+            content: vschc_body_content(),
+            file: IS_FILE ? jQuery('#vschc-body-file-path .vschc-path').text() : false,
+            fileSize: IS_FILE ? parseInt(jQuery('#vschc-input-body-file-col .vschc-size').text()) : false
         },
         headers: vschc_get_headers(),
         method: METHOD_FIELD.val(),
@@ -222,6 +288,57 @@ function vschc_send_request() {
     }
 }
 
+function vschc_set_body_content(content) {
+    const BODY_TEXT = jQuery('#vschc-input-body-text');
+    BODY_TEXT.val( content.data );
+    
+    vschc_reset_body_file();                    
+    vschc_update_body_area();
+}
+
+function vschc_set_body_content_from_file(content) {
+    let contentDisplayer;
+
+    const BODY_FILE = jQuery('#vschc-input-body-file');
+    const BODY_FILE_PATH = jQuery('#vschc-body-file-path');
+    
+    const BODY_FILE_CONTENT_TO_DISPLAY = jQuery('#vschc-body-file-content-to-display');
+    BODY_FILE_CONTENT_TO_DISPLAY.hide();
+    BODY_FILE_CONTENT_TO_DISPLAY.html('');
+
+    if (content && content.data.length > 1) {
+        BODY_FILE.val( content.data );
+
+        BODY_FILE_PATH.find('.vschc-path').text( content.path );
+        BODY_FILE_PATH.find('.vschc-size').text( `${ content.size }` );
+
+        if (content.mime) {
+            const MIME = ('' + content.mime).toLowerCase().trim();
+            if (MIME.startsWith('image/')) {
+                contentDisplayer = () => {
+                    const IMG = jQuery('<img />');
+                    IMG.attr('src', `data:${ MIME };base64,${ content.data.trim() }`);
+                    IMG.addClass( 'img-fluid' );
+
+                    IMG.appendTo( BODY_FILE_CONTENT_TO_DISPLAY );
+
+                    BODY_FILE_CONTENT_TO_DISPLAY.show();
+                };
+            }
+        }
+    } else {
+        vschc_reset_body_file();
+    }
+
+    vschc_update_body_area();
+    
+    vschc_auto_add_content_type_header( content.mime );
+
+    if (contentDisplayer) {
+        contentDisplayer();
+    }
+}
+
 function vschc_update_body_area() {
     const COL_BODY_TEXT = jQuery('#vschc-input-body-text-col');
     const COL_FILE_TEXT = jQuery('#vschc-input-body-file-col');
@@ -243,6 +360,15 @@ function vschc_update_body_area() {
     }
 }
 
+function vschc_update_header_area() {
+    const HEADERS_CARD = jQuery('#vschc-headers-card');
+    const HEADERS_CARD_BODY = HEADERS_CARD.find('.card-body');
+
+    if (HEADERS_CARD_BODY.find('table tbody tr.vschc-header-row').length < 1) {
+        vschc_reset_headers();
+    }
+}
+
 jQuery(() => {
     window.addEventListener('message', (e) => {
         if (!e) {
@@ -255,10 +381,47 @@ jQuery(() => {
         }
 
         switch (MSG.command) {
+            case 'findInitialControlToFocus':
+                {
+                    const URL_FIELD = jQuery('#vschc-input-url');
+
+                    let controlToFocus = false;
+
+                    if (!URL_FIELD.val() || '' === URL_FIELD.val().trim()) {
+                        controlToFocus = URL_FIELD;
+                    }
+
+                    if (!controlToFocus) {
+                        const HEADERS_CARD = jQuery('#vschc-headers-card');
+                        const HEADERS_CARD_BODY = HEADERS_CARD.find('.card-body');
+
+                        HEADERS_CARD_BODY.find('table tbody tr.vschc-header-row').each(function() {
+                            const ROW = jQuery(this);
+
+                            const NAME_FIELD = ROW.find('.vschc-name input');
+                            const NAME = NAME_FIELD.val();
+
+                            if (!NAME || '' === NAME.trim()) {
+                                if (!controlToFocus) {
+                                    controlToFocus = NAME_FIELD;
+                                }
+                            }   
+                        });
+                    }
+
+                    if (!controlToFocus) {
+                        controlToFocus = URL_FIELD;
+                    }
+
+                    controlToFocus.focus();
+                }
+                break;
+
             case 'importRequestCompleted':
                 {
                     const REQUEST = MSG.data;
 
+                    let body = REQUEST.body;
                     let headers = REQUEST.headers;
                     let method = REQUEST.method;
                     let title = REQUEST.title;
@@ -293,10 +456,24 @@ jQuery(() => {
                     jQuery('#vschc-input-title').val( '' + title )
                                                 .trigger('change');
 
-                    vschc_reset_body_file();
-                    jQuery('#vschc-input-body-text').val('');
+                    if (body) {
+                        if (body.file) {
+                            vschc_set_body_content_from_file({
+                                data: body.content,
+                                mime: body.mime,
+                                path: body.file,
+                                size: body.fileSize
+                            });
+                        } else {
+                            vschc_set_body_content({
+                                data: body.content
+                            });
+                        }
+                    } else {
+                        vschc_update_body_area();
+                    }
 
-                    vschc_update_body_area();
+                    vschc_update_header_area();
 
                     jQuery('#vschc-input-url').focus();                    
                 }
@@ -473,62 +650,11 @@ jQuery(() => {
                 break;
 
             case 'setBodyContent':
-                {
-                    const CONTENT = MSG.data;
-
-                    const BODY_TEXT = jQuery('#vschc-input-body-text');
-                    BODY_TEXT.val( CONTENT.data );
-                    
-                    vschc_reset_body_file();                    
-                    vschc_update_body_area();
-                }
+                vschc_set_body_content(MSG.data);
                 break;
 
             case 'setBodyContentFromFile':
-                {
-                    let contentDisplayer;
-
-                    const CONTENT = MSG.data;
-
-                    const BODY_FILE = jQuery('#vschc-input-body-file');
-                    const BODY_FILE_PATH = jQuery('#vschc-body-file-path');
-                    
-                    const BODY_FILE_CONTENT_TO_DISPLAY = jQuery('#vschc-body-file-content-to-display');
-                    BODY_FILE_CONTENT_TO_DISPLAY.hide();
-                    BODY_FILE_CONTENT_TO_DISPLAY.html('');
-
-                    if (CONTENT && CONTENT.data.length > 1) {
-                        BODY_FILE.val( CONTENT.data );
-
-                        BODY_FILE_PATH.find('.vschc-path').text( CONTENT.path );
-                        BODY_FILE_PATH.find('.vschc-size').text( `(${ CONTENT.size })` );
-
-                        if (CONTENT.mime) {
-                            const MIME = ('' + CONTENT.mime).toLowerCase().trim();
-                            if (MIME.startsWith('image/')) {
-                                contentDisplayer = () => {
-                                    const IMG = jQuery('<img />');
-                                    IMG.attr('src', `data:${ MIME };base64,${ CONTENT.data.trim() }`);
-                                    IMG.addClass( 'img-fluid' );
-
-                                    IMG.appendTo( BODY_FILE_CONTENT_TO_DISPLAY );
-
-                                    BODY_FILE_CONTENT_TO_DISPLAY.show();
-                                };
-                            }
-                        }
-                    } else {
-                        vschc_reset_body_file();
-                    }
-
-                    vschc_update_body_area();
-                    
-                    vschc_auto_add_content_type_header( CONTENT.mime );
-
-                    if (contentDisplayer) {
-                        contentDisplayer();
-                    }
-                }
+                vschc_set_body_content_from_file(MSG.data);
                 break;            
         }
     });
@@ -580,6 +706,10 @@ jQuery(() => {
         vscode.postMessage({
             command: 'resetAllHeaders'
         });
+    });
+
+    jQuery('#vschc-add-header-btn').on('click', function() {
+        vschc_add_header_row();
     });
 });
 

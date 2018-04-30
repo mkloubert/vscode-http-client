@@ -42,6 +42,10 @@
     margin-top: 8px;
 }
 
+#vschc-headers-card-heading .btn {
+    margin-left: 8px;
+}
+
 #vschc-headers-card-heading span {
     cursor: pointer;
 }

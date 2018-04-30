@@ -41,6 +41,18 @@ export interface RequestData {
          * The content for the body field.
          */
         content: string | false;
+        /**
+         * The path of the file.
+         */
+        file: string | false;
+        /**
+         * The file size.
+         */
+        fileSize: number | false;
+        /**
+         * The MIME type.
+         */
+        mime?: string | false;
     };
     /**
      * Headers.
@@ -296,7 +308,9 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase {
  */
 export class HTTPRequest extends HTTPRequestBase {
     private async exportRequest(request: RequestData) {
-        delete request.body;
+        if (request.body) {
+            delete request.body.mime;
+        }
 
         const DATA_TO_SAVE = new Buffer(
             JSON.stringify(request, null, 2), 'utf8'
@@ -308,7 +322,7 @@ export class HTTPRequest extends HTTPRequestBase {
             filters: {
                 "HTTP Requests": [ 'http-request' ]
             },
-            saveLabel: "Export request",
+            saveLabel: "Export Request",
         });
     }
 
@@ -318,6 +332,13 @@ export class HTTPRequest extends HTTPRequestBase {
             if (!vscode_helpers.isEmptyString(DATA)) {
                 const REQUEST: RequestData = JSON.parse( DATA );
                 if (REQUEST) {
+                    if (REQUEST.body) {
+                        const FILE = REQUEST.body.file;
+                        if (false !== FILE && !vscode_helpers.isEmptyString(FILE)) {
+                            REQUEST.body.mime = MimeTypes.lookup(FILE);
+                        }
+                    }
+
                     await this.postMessage('importRequestCompleted', REQUEST);
                 }
             }
@@ -325,7 +346,7 @@ export class HTTPRequest extends HTTPRequestBase {
             filters: {
                 "HTTP Requests": [ 'http-request' ]
             },
-            openLabel: "Import request",
+            openLabel: "Import Request",
         });
     }
 
@@ -390,6 +411,8 @@ export class HTTPRequest extends HTTPRequestBase {
                     if (!_.isNil(this.startOptions.data)) {
                         await this.postMessage('importRequestCompleted', this.startOptions.data);
                     }
+
+                    await this.postMessage('findInitialControlToFocus');
                 }
                 break;
 
@@ -479,7 +502,7 @@ export class HTTPRequest extends HTTPRequestBase {
                     </div>
 
                     <div class="col-sm-10" id="vschc-input-body-file-col" style="display: none;">
-                        <div id="vschc-body-file-path"><a class="vschc-path" title="Click here to reset ..." href="#"></a>&nbsp;<span class="vschc-size"></span></div>
+                        <div id="vschc-body-file-path"><a class="vschc-path" title="Click here to reset ..." href="#"></a>&nbsp;(<span class="vschc-size"></span>)</div>
                         <div id="vschc-body-file-content-to-display" style="display: none;"></div>
                         <input type="hidden" id="vschc-input-body-file">
                     </div>
@@ -506,6 +529,10 @@ export class HTTPRequest extends HTTPRequestBase {
 
                 <a class="btn btn-danger btn-sm float-right" id="vschc-reset-all-headers-btn" title="Remove All Headers">
                     <i class="fa fa-undo" aria-hidden="true"></i>
+                </a>
+
+                <a class="btn btn-dark btn-sm float-right" id="vschc-add-header-btn" title="Add New Header">
+                    <i class="fa fa-plus-circle" aria-hidden="true"></i>
                 </a>
             </div>
 
