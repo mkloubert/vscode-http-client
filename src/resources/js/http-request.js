@@ -146,6 +146,217 @@ function vschc_body_content() {
     return content;
 }
 
+function vschc_create_response_content(responseData) {
+    if (!responseData) {
+        return;
+    }
+
+    const CARD = jQuery('<div class="vschc-response-card-entry" />');
+    const CARD_BODY = CARD;
+
+    const CARD_BUTTONS = [];
+
+    if (!vschc_is_empty_str( responseData.error )) {
+        const ALERT = jQuery('<div class="alert alert-danger" role="alert" />');
+        ALERT.text( vschc_to_string(RESPONSE_DATA.error) );
+
+        ALERT.appendTo( CARD_BODY );
+    } else {
+        const RESPONSE = responseData.response;
+
+        let http = `HTTP/${ RESPONSE.httpVersion } ${ RESPONSE.code } ${ RESPONSE.status }\r\n`;
+
+        let pre;
+
+        const REFRESH_HTTP = () => {
+            if (pre) {
+                pre.remove();
+            }
+            
+            pre = jQuery('<pre><code class="http" /></pre>');
+
+            const CODE = pre.find('code');
+            CODE.text(http);
+
+            pre.appendTo( CARD_BODY );
+            hljs.highlightBlock( CODE[0] );
+        };
+        
+        let contentDisplayer = false;
+        let suggestedExtension = RESPONSE.suggestedExtension;
+
+        if (RESPONSE.headers) {
+            const MIME = vschc_get_content_type(RESPONSE.headers);
+            if ('' !== MIME) {
+                let jsonResp;
+                try {
+                    jsonResp = JSON.parse( atob( RESPONSE.body ) );
+                } catch (e) {
+                    jsonResp = false;
+                }
+
+                if (jsonResp) {
+                    contentDisplayer = () => {
+                        const JSON_PRE = jQuery('<pre><code class="json" /></pre>');
+                        const JSON_CODE = JSON_PRE.find('code');
+
+                        JSON_CODE.text(JSON.stringify(
+                            jsonResp, null, 2
+                        ));
+
+                        JSON_PRE.appendTo( CARD_BODY );
+                        hljs.highlightBlock( JSON_CODE[0] );
+
+                        suggestedExtension = 'json';
+                    };
+                } else if (vschc_is_mime(MIME, [ 'text/css' ])) {
+                    contentDisplayer = () => {
+                        const CSS = atob( RESPONSE.body );
+
+                        const CSS_PRE = jQuery('<pre><code class="css" /></pre>');
+                        const CSS_CODE = CSS_PRE.find('code');
+
+                        CSS_CODE.text(CSS);
+
+                        CSS_PRE.appendTo( CARD_BODY );
+                        hljs.highlightBlock( CSS_CODE[0] );
+                    };
+                } else if (vschc_is_mime(MIME, [ 'text/html' ])) {
+                    contentDisplayer = () => {
+                        const HTML = atob( RESPONSE.body );
+
+                        const HTML_PRE = jQuery('<pre><code class="html" /></pre>');
+                        const HTML_CODE = HTML_PRE.find('code');
+
+                        HTML_CODE.text(HTML);
+
+                        HTML_PRE.appendTo( CARD_BODY );
+                        hljs.highlightBlock( HTML_CODE[0] );
+                    };
+                } else if (vschc_is_mime(MIME, [ 'text/markdown' ])) {
+                    contentDisplayer = () => {
+                        const MD = atob( RESPONSE.body );
+
+                        const MD_PRE = jQuery('<pre><code class="markdown" /></pre>');
+                        const MD_CODE = MD_PRE.find('code');
+
+                        MD_CODE.text(MD);
+
+                        MD_PRE.appendTo( CARD_BODY );
+                        hljs.highlightBlock( MD_CODE[0] );
+                    };
+                } else if (vschc_is_mime(MIME, [ 'text/xml' ])) {
+                    contentDisplayer = () => {
+                        const XML = atob( RESPONSE.body );
+
+                        const XML_PRE = jQuery('<pre><code class="xml" /></pre>');
+                        const XML_CODE = XML_PRE.find('code');
+
+                        XML_CODE.text(XML);
+
+                        XML_PRE.appendTo( CARD_BODY );
+                        hljs.highlightBlock( XML_CODE[0] );
+                    };
+                } else if (vschc_is_mime(MIME, [ 'application/javascript', 'text/javascript' ])) {
+                    contentDisplayer = () => {
+                        const JS = atob( RESPONSE.body );
+
+                        const JS_PRE = jQuery('<pre><code class="javascript" /></pre>');
+                        const JS_CODE = JS_PRE.find('code');
+
+                        JS_CODE.text(JS);
+
+                        JS_PRE.appendTo( CARD_BODY );
+                        hljs.highlightBlock( JS_CODE[0] );
+                    };
+                } else if (vschc_is_mime(MIME, [ 'application/x-yaml', 'text/yaml' ])) {
+                    contentDisplayer = () => {
+                        const YAML = atob( RESPONSE.body );
+
+                        const YAML_PRE = jQuery('<pre><code class="yaml" /></pre>');
+                        const YAML_CODE = YAML_PRE.find('code');
+
+                        YAML_CODE.text(YAML);
+
+                        YAML_PRE.appendTo( CARD_BODY );
+                        hljs.highlightBlock( YAML_CODE[0] );
+                    };
+                } else if (MIME.startsWith('text/')) {
+                    contentDisplayer = () => {
+                        http += atob( RESPONSE.body );
+
+                        REFRESH_HTTP();
+                    };
+                } else if (MIME.startsWith('image/')) {
+                    contentDisplayer = () => {
+                        const IMG = jQuery('<img />');
+                        IMG.attr('src', `data:${ MIME };base64,${ RESPONSE.body.trim() }`);
+                        IMG.addClass( 'img-fluid' );
+
+                        IMG.appendTo( CARD_BODY );
+                    };
+                }
+            }
+
+            for (const H in RESPONSE.headers) {
+                http += `${H}: ${ RESPONSE.headers[H] }\r\n`;
+            }
+        }
+        
+        http += "\r\n";
+        
+        REFRESH_HTTP();
+
+        if (RESPONSE.body && RESPONSE.body.length > 0) {
+            if (contentDisplayer) {
+                contentDisplayer();
+            }
+
+            CARD_BODY.append( '<div class="clearfix" />' );
+
+            const SAVE_BTN = jQuery('<a class="btn btn-primary vschc-save-response-btn">' + 
+                                    '<i class="fa fa-floppy-o" aria-hidden="true"></i>' + 
+                                    '<span>Save Content</span>' + 
+                                    '</a>');
+            SAVE_BTN.on('click', function() {
+                vscode.postMessage({
+                    command: 'saveContent',
+                    data: {
+                        data: RESPONSE.body,
+                        suggestedExtension: suggestedExtension,
+                    }
+                });
+            });
+
+            CARD_BUTTONS.push( SAVE_BTN );
+        }
+
+        const SAVE_RAW_RESP_BTN = jQuery('<a class="btn btn-dark vschc-save-raw-response-btn">' + 
+                                         '<i class="fa fa-file-text" aria-hidden="true"></i>' + 
+                                         '<span>Save Raw</span>' + 
+                                         '</a>');
+        SAVE_RAW_RESP_BTN.on('click', () => {
+            vscode.postMessage({
+                command: 'saveRawResponse',
+                data: RESPONSE
+            });
+        });
+        CARD_BUTTONS.push( SAVE_RAW_RESP_BTN );
+
+        if (CARD_BUTTONS.length > 0) {
+            const BUTTON_LIST = jQuery('<div class="vschc-response-buttons" />');
+
+            for (const CB of CARD_BUTTONS) {
+                CB.appendTo( BUTTON_LIST );
+            }
+
+            BUTTON_LIST.appendTo( CARD_BODY );
+        }
+    }
+
+    return CARD;
+}
+
 function vschc_get_headers() {
     const HEADERS = {};
 
@@ -234,10 +445,16 @@ function vschc_reset_headers() {
 }
 
 function vschc_reset_response() {
-    jQuery('#vschc-save-raw-response-btn').hide();
-    jQuery('#vschc-reset-response-btn').hide();
+    jQuery('#vschc-reset-responses-btn').hide();
 
     jQuery('#vschc-response-card .card-body').text( 'No request started yet.' );
+}
+
+function vschc_restore_send_request_button() {
+    const BTN = jQuery('#vschc-send-request');
+
+    BTN.find('span').text('Send Request');
+    BTN.removeClass('disabled');
 }
 
 function vschc_send_request() {
@@ -249,21 +466,9 @@ function vschc_send_request() {
         URL_FIELD.focus();
     } else {
         BTN.addClass('disabled');
+        BTN.find('span').text('Sending ...');
 
-        jQuery('#vschc-save-raw-response-btn').hide();
-        jQuery('#vschc-reset-response-btn').hide();
-
-        const CARD      = jQuery('#vschc-response-card');
-        const CARD_BODY = CARD.find('.card-body');
-
-        CARD_BODY.html('');
-        {
-            const AJAX_LOADER = jQuery('<img />');
-            AJAX_LOADER.addClass('vschc-ajax-loader');
-            AJAX_LOADER.attr('src', AJAX_LOADER_URL);
-
-            AJAX_LOADER.appendTo( CARD_BODY );
-        }
+        jQuery('#vschc-reset-responses-btn').hide();
 
         vscode.postMessage({
             command: 'sendRequest',
@@ -479,215 +684,103 @@ jQuery(() => {
                 vschc_reset_headers();
                 break;
 
-            case 'resetResponseCompleted':
+            case 'resetResponsesCompleted':
                 vschc_reset_response();
                 break;
 
             case 'sendRequestCompleted':
                 {
                     const RESPONSE_DATA = MSG.data;
+                    const RESPONSE = RESPONSE_DATA.response;
 
                     const CARD      = jQuery('#vschc-response-card');
                     const CARD_BODY = CARD.find('.card-body');
 
-                    CARD_BODY.html('');
+                    const NEW_RESPONSE_CARD = vschc_create_response_content( RESPONSE_DATA );
+                    if (NEW_RESPONSE_CARD) {
+                        let tab = CARD_BODY.find('#vschc-response-tab');
+                        if (tab.length < 1) {
+                            CARD_BODY.html('');
 
-                    if (!vschc_is_empty_str( RESPONSE_DATA.error )) {
-                        const ALERT = jQuery('<div class="alert alert-danger" role="alert" />');
-                        ALERT.text( vschc_to_string(RESPONSE_DATA.error) );
+                            tab = jQuery('<div id="vschc-response-tab">' + 
+                                         '<ul class="nav nav-tabs" id="vschc-response-tab-list" role="tablist" />' + 
+                                         '<div class="tab-content" id="vschc-response-tab-content" />' + 
+                                         '</div>');
 
-                        ALERT.appendTo( CARD_BODY );
-                    } else {
-                        const RESPONSE = RESPONSE_DATA.response;
-
-                        let http = `HTTP/${ RESPONSE.httpVersion } ${ RESPONSE.code } ${ RESPONSE.status }\r\n`;
-
-                        let pre;
-
-                        const REFRESH_HTTP = () => {
-                            if (pre) {
-                                pre.remove();
-                            }
-                            
-                            pre = jQuery('<pre><code class="http" /></pre>');
-
-                            const CODE = pre.find('code');
-                            CODE.text(http);
-
-                            pre.appendTo( CARD_BODY );
-                            hljs.highlightBlock( CODE[0] );
-                        };
-                        
-                        let contentDisplayer = false;
-                        let suggestedExtension = RESPONSE.suggestedExtension;
-
-                        if (RESPONSE.headers) {
-                            const MIME = vschc_get_content_type(RESPONSE.headers);
-                            if ('' !== MIME) {
-                                let jsonResp;
-                                try {
-                                    jsonResp = JSON.parse( atob( RESPONSE.body ) );
-                                } catch (e) {
-                                    jsonResp = false;
-                                }
-
-                                if (jsonResp) {
-                                    contentDisplayer = () => {
-                                        const JSON_PRE = jQuery('<pre><code class="json" /></pre>');
-                                        const JSON_CODE = JSON_PRE.find('code');
-
-                                        JSON_CODE.text(JSON.stringify(
-                                            jsonResp, null, 2
-                                        ));
-
-                                        JSON_PRE.appendTo( CARD_BODY );
-                                        hljs.highlightBlock( JSON_CODE[0] );
-
-                                        suggestedExtension = 'json';
-                                    };
-                                } else if (vschc_is_mime(MIME, [ 'text/css' ])) {
-                                    contentDisplayer = () => {
-                                        const CSS = atob( RESPONSE.body );
-
-                                        const CSS_PRE = jQuery('<pre><code class="css" /></pre>');
-                                        const CSS_CODE = CSS_PRE.find('code');
-
-                                        CSS_CODE.text(CSS);
-
-                                        CSS_PRE.appendTo( CARD_BODY );
-                                        hljs.highlightBlock( CSS_CODE[0] );
-                                    };
-                                } else if (vschc_is_mime(MIME, [ 'text/html' ])) {
-                                    contentDisplayer = () => {
-                                        const HTML = atob( RESPONSE.body );
-
-                                        const HTML_PRE = jQuery('<pre><code class="html" /></pre>');
-                                        const HTML_CODE = HTML_PRE.find('code');
-
-                                        HTML_CODE.text(HTML);
-
-                                        HTML_PRE.appendTo( CARD_BODY );
-                                        hljs.highlightBlock( HTML_CODE[0] );
-                                    };
-                                } else if (vschc_is_mime(MIME, [ 'text/markdown' ])) {
-                                    contentDisplayer = () => {
-                                        const MD = atob( RESPONSE.body );
-
-                                        const MD_PRE = jQuery('<pre><code class="markdown" /></pre>');
-                                        const MD_CODE = MD_PRE.find('code');
-
-                                        MD_CODE.text(MD);
-
-                                        MD_PRE.appendTo( CARD_BODY );
-                                        hljs.highlightBlock( MD_CODE[0] );
-                                    };
-                                } else if (vschc_is_mime(MIME, [ 'text/xml' ])) {
-                                    contentDisplayer = () => {
-                                        const XML = atob( RESPONSE.body );
-
-                                        const XML_PRE = jQuery('<pre><code class="xml" /></pre>');
-                                        const XML_CODE = XML_PRE.find('code');
-
-                                        XML_CODE.text(XML);
-
-                                        XML_PRE.appendTo( CARD_BODY );
-                                        hljs.highlightBlock( XML_CODE[0] );
-                                    };
-                                } else if (vschc_is_mime(MIME, [ 'application/javascript', 'text/javascript' ])) {
-                                    contentDisplayer = () => {
-                                        const JS = atob( RESPONSE.body );
-
-                                        const JS_PRE = jQuery('<pre><code class="javascript" /></pre>');
-                                        const JS_CODE = JS_PRE.find('code');
-
-                                        JS_CODE.text(JS);
-
-                                        JS_PRE.appendTo( CARD_BODY );
-                                        hljs.highlightBlock( JS_CODE[0] );
-                                    };
-                                } else if (vschc_is_mime(MIME, [ 'application/x-yaml', 'text/yaml' ])) {
-                                    contentDisplayer = () => {
-                                        const YAML = atob( RESPONSE.body );
-
-                                        const YAML_PRE = jQuery('<pre><code class="yaml" /></pre>');
-                                        const YAML_CODE = YAML_PRE.find('code');
-
-                                        YAML_CODE.text(YAML);
-
-                                        YAML_PRE.appendTo( CARD_BODY );
-                                        hljs.highlightBlock( YAML_CODE[0] );
-                                    };
-                                } else if (MIME.startsWith('text/')) {
-                                    contentDisplayer = () => {
-                                        http += atob( RESPONSE.body );
-
-                                        REFRESH_HTTP();
-                                    };
-                                } else if (MIME.startsWith('image/')) {
-                                    contentDisplayer = () => {
-                                        const IMG = jQuery('<img />');
-                                        IMG.attr('src', `data:${ MIME };base64,${ RESPONSE.body.trim() }`);
-                                        IMG.addClass( 'img-fluid' );
-
-                                        IMG.appendTo( CARD_BODY );
-                                    };
-                                }
-                            }
-
-                            for (const H in RESPONSE.headers) {
-                                http += `${H}: ${ RESPONSE.headers[H] }\r\n`;
-                            }
-                        }
-                        
-                        http += "\r\n";
-                        
-                        REFRESH_HTTP();
-
-                        if (RESPONSE.body && RESPONSE.body.length > 0) {
-                            if (contentDisplayer) {
-                                contentDisplayer();
-                            }
-
-                            CARD_BODY.append( '<div class="clearfix" />' );
-
-                            const SAVE_BTN = jQuery('<a class="btn btn-primary" id="vschc-save-response-btn">' + 
-                                                    '<i class="fa fa-floppy-o" aria-hidden="true"></i>' + 
-                                                    '<span>Save Content</span>' + 
-                                                    '</a>');
-                            SAVE_BTN.on('click', function() {
-                                vscode.postMessage({
-                                    command: 'saveContent',
-                                    data: {
-                                        data: RESPONSE.body,
-                                        suggestedExtension: suggestedExtension,
-                                    }
-                                });
-                            });
-
-                            SAVE_BTN.appendTo( CARD_BODY );                                                           
+                            tab.appendTo( CARD_BODY );
                         }
 
-                        jQuery('#vschc-save-raw-response-btn').off('click').on('click', function() {
-                            vscode.postMessage({
-                                command: 'saveRawResponse',
-                                data: RESPONSE
-                            });
-                        }).show();                        
+                        const EXISTING_TAB_PANES = tab.find('.tab-content .tab-pane');
+                        EXISTING_TAB_PANES.each(function() {
+                            const P = jQuery(this);
+
+                            P.removeClass('active')
+                             .removeClass('show');
+                        });
+
+                        const NEXT_ID = EXISTING_TAB_PANES.length;
+
+                        const TAB_ITEM_ID = `vschc-response-tab-item-${NEXT_ID}`;
+                        const TAB_PANE_ID = `vschc-response-tab-pane-${NEXT_ID}`;
+
+                        const NEW_NAV_ITEM = jQuery('<li class="nav-item vschc-response-tab-item">' + 
+                                                    `<a class="nav-link" id="${ TAB_ITEM_ID }" data-toggle="tab" href="#${ TAB_PANE_ID }" role="tab" aria-controls="${ TAB_PANE_ID }" aria-selected="true"><span class="vschc-title" /><span class="vschc-buttons" /></a>` + 
+                                                    '</li>');
+                        const NEW_NAV_ITEM_LINK = NEW_NAV_ITEM.find('a.nav-link');
+                        NEW_NAV_ITEM_LINK.find('span.vschc-title').text(`Response #${NEXT_ID + 1}`);
+
+                        const NEW_TAB_PANE = jQuery(`<div class="tab-pane vschc-response-tab-pane" id="${ TAB_PANE_ID }" role="tabpanel" aria-labelledby="${ TAB_ITEM_ID }" />`);
+                        NEW_TAB_PANE.append( NEW_RESPONSE_CARD );
+
+                        tab.find('.nav-tabs').prepend( NEW_NAV_ITEM );
+                        tab.find('.tab-content').prepend( NEW_TAB_PANE );
+
+                        NEW_NAV_ITEM.find('a').tab('show');
                     }
 
-                    jQuery('#vschc-reset-response-btn').show();
+                    jQuery('#vschc-reset-responses-btn').show();
 
-                    const BTN = jQuery('#vschc-send-request');
-                    BTN.removeClass('disabled');
+                    vschc_restore_send_request_button();
 
-                    jQuery('html,body').animate({
-                        scrollTop: jQuery('#vschc-response-card').offset().top
-                    }, 'slow');
+                    const SEND_BTN = jQuery('#vschc-send-request');
+                    jQuery(document).scrollTop(
+                        SEND_BTN.offset().top - SEND_BTN.outerHeight(true) - 24
+                    );
                 }
                 break;
 
             case 'setBodyContent':
                 vschc_set_body_content(MSG.data);
+                break;
+
+            case 'setHeaders':
+                {
+                    vschc_reset_headers();
+
+                    const CARD      = jQuery('#vschc-headers-card');
+                    const CARD_BODY = CARD.find('.card-body');
+
+                    const HEADER_TABLE = CARD_BODY.find('table');
+                    const HEADER_TABLE_ROWS = HEADER_TABLE.find('tbody .vschc-header-row');
+
+                    HEADER_TABLE_ROWS.remove();
+
+                    const HEADERS = MSG.data;
+                    if (HEADERS) {
+                        for (const H in HEADERS) {
+                            const NAME = vschc_to_string(H).trim();
+
+                            if ('' !== NAME) {
+                                vschc_add_header_row(NAME,
+                                                     HEADERS[H]);
+                            }
+                        }
+                    }
+
+                    if (HEADER_TABLE_ROWS.length < 1) {
+                        vschc_reset_headers();
+                    }
+                }
                 break;
 
             case 'setBodyContentFromFile':
@@ -733,9 +826,9 @@ jQuery(() => {
         });
     });
 
-    jQuery('#vschc-reset-response-btn').on('click', function() {
+    jQuery('#vschc-reset-responses-btn').on('click', function() {
         vscode.postMessage({
-            command: 'resetResponse'
+            command: 'resetResponses'
         });
     });
 

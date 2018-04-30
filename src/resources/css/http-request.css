@@ -34,8 +34,12 @@
     margin: 0;
 }
 
-#vschc-save-response-btn {
+#vschc-response-card .vschc-response-buttons {
     margin-top: 16px;
+}
+
+#vschc-response-card .vschc-response-buttons .btn {
+    margin-left: 8px;
 }
 
 #vschc-body-file-content-to-display {
@@ -52,10 +56,22 @@
 
 #vschc-send-request .fa,
 #vschc-btn-from-file .fa,
-#vschc-save-response-btn .fa {
+#vschc-response-card .vschc-response-buttons .btn .fa {
     margin-right: 8px;
 }
 
 #vschc-response-card .card-header .btn {
     margin-left: 8px;
+}
+
+#vschc-response-tab .vschc-response-tab-item a .vschc-buttons {
+    padding-left: 8px;
+}
+
+#vschc-response-tab .vschc-response-tab-item a .vschc-buttons .btn {
+    float: right;
+}
+
+#vschc-response-tab .vschc-response-tab-item a .vschc-buttons .btn .fa {
+    margin-right: 0;
 }

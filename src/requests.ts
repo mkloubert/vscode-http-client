@@ -23,11 +23,22 @@ import * as MimeTypes from 'mime-types';
 const NormalizeHeaderCase = require("header-case-normalizer");
 import * as Path from 'path';
 import * as URL from 'url';
+import * as UUID from 'uuid';
 import * as vschc from './extension';
 import * as vschc_html from './html';
 import * as vscode from 'vscode';
 import * as vscode_helpers from 'vscode-helpers';
 
+
+/**
+ * A HTTP request.
+ */
+export interface IHTTPRequest extends vscode.Disposable {
+    /**
+     * Gets the ID of that instance.
+     */
+    readonly id: any;
+}
 
 /**
  * Request data.
@@ -106,9 +117,17 @@ export interface StartNewRquestOptions {
      */
     data?: RequestData;
     /**
+     * A list of one or more disposable to be owned by the request.
+     */
+    disposables?: vscode.Disposable | vscode.Disposable[];
+    /**
      * The file to load.
      */
     file?: vscode.Uri;
+    /**
+     * One or more initial headers.
+     */
+    headers?: any;
     /**
      * Display options for the tab of the underlying view.
      */
@@ -125,10 +144,17 @@ interface WebViewMessage {
 }
 
 
+let nextHTTPRequestId = Number.MIN_SAFE_INTEGER;
+/**
+ * The global list of requests.
+ */
+export const REQUESTS: IHTTPRequest[] = [];
+
+
 /**
  * A basic HTTP request.
  */
-export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase {
+export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase implements IHTTPRequest {
     /**
      * Stores the HTML for the WebView.
      */
@@ -136,6 +162,15 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase {
     private _panel: vscode.WebviewPanel;
     private _resourceRoot: string;
     private _startOptions: StartNewRquestOptions;
+
+    /**
+     * Initializes a new instance of that class.
+     */
+    public constructor() {
+        super();
+
+        this.id = `${nextHTTPRequestId++}\n${ UUID.v4() }`;
+    }
 
     /**
      * Returns an URI from the 'resources' directory.
@@ -155,6 +190,11 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase {
     }
 
     /**
+     * @inheritdoc
+     */
+    public readonly id: any;
+
+    /**
      * Initializes the request.
      */
     public async initialize() {
@@ -166,6 +206,13 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase {
     }
 
     /**
+     * Is invoked after the underlying panel has been disposed.
+     */
+    protected async onDidDispose() {
+        removeRequest(this);
+    }
+
+    /**
      * Is invoked when the web view received a message from the browser.
      *
      * @param {WebViewMessage} msg The received message.
@@ -174,16 +221,23 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase {
     }
 
     /**
-     * The logic to intialize the request.
-     */
-    protected abstract async onInitialize();
-
-    /**
      * @inheritdoc
      */
     protected onDispose() {
         vscode_helpers.tryDispose(this._panel);
+
+        const OPTS = this.startOptions;
+        if (OPTS) {
+            for (const DISP of vscode_helpers.asArray(OPTS.disposables)) {
+                vscode_helpers.tryDispose( DISP );
+            }
+        }
     }
+
+    /**
+     * The logic to intialize the request.
+     */
+    protected abstract async onInitialize();
 
     /**
      * Gets the underlying panel.
@@ -209,6 +263,11 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase {
         return await this.view.postMessage(MSG);
     }
 
+    /**
+     * Shows an error.
+     *
+     * @param {any} err The error to show.
+     */
     protected async showError(err: any) {
         return vschc.showError(err);
     }
@@ -273,8 +332,15 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase {
                 }
             });
 
+            newPanel.onDidDispose(() => {
+                try {
+                    ME.onDidDispose().then(() => {
+                    }, (err) => {});
+                } catch { }
+            });
+
             if (false !== ME._html) {
-                newPanel.webview.html = ME._html;
+                newPanel.webview.html = vscode_helpers.toStringSafe( ME._html );
             }
 
             ME._startOptions = opts;
@@ -408,6 +474,11 @@ export class HTTPRequest extends HTTPRequestBase {
                         });
                     }
 
+                    if (!_.isNil(this.startOptions.headers)) {
+                        await this.postMessage('setHeaders',
+                                               this.startOptions.headers);
+                    }
+
                     if (!_.isNil(this.startOptions.data)) {
                         await this.postMessage('importRequestCompleted', this.startOptions.data);
                     }
@@ -420,8 +491,8 @@ export class HTTPRequest extends HTTPRequestBase {
                 await this.resetAllHeaders();
                 break;
 
-            case 'resetResponse':
-                await this.resetResponse();
+            case 'resetResponses':
+                await this.resetResponses();
                 break;
 
             case 'saveContent':
@@ -528,7 +599,7 @@ export class HTTPRequest extends HTTPRequestBase {
                 <span class="align-middle" data-toggle="collapse" data-target="#vschc-headers-card-body" aria-expanded="true" aria-controls="vschc-headers-card-body">Custom Headers</span>
 
                 <a class="btn btn-danger btn-sm float-right" id="vschc-reset-all-headers-btn" title="Remove All Headers">
-                    <i class="fa fa-undo" aria-hidden="true"></i>
+                    <i class="fa fa-eraser" aria-hidden="true"></i>
                 </a>
 
                 <a class="btn btn-dark btn-sm float-right" id="vschc-add-header-btn" title="Add New Header">
@@ -553,13 +624,10 @@ export class HTTPRequest extends HTTPRequestBase {
 
     <div class="vschc-card card" id="vschc-response-card">
         <div class="card-header bg-info text-white">
-            <span class="align-middle">Response</span>
+            <span class="align-middle">Responses</span>
 
-            <a class="btn btn-danger btn-sm float-right" id="vschc-reset-response-btn" style="display: none;" title="Reset Response">
+            <a class="btn btn-danger btn-sm float-right" id="vschc-reset-responses-btn" style="display: none;" title="Reset Responses">
                 <i class="fa fa-eraser" aria-hidden="true"></i>
-            </a>
-            <a class="btn btn-dark btn-sm float-right" id="vschc-save-raw-response-btn" style="display: none;" title="Save Response">
-                <i class="fa fa-floppy-o" aria-hidden="true"></i>
             </a>
         </div>
 
@@ -569,12 +637,12 @@ export class HTTPRequest extends HTTPRequestBase {
 `,
             getHeaderButtons: () => {
                 return `
-<a class="btn btn-primary btn-sm" id="vschc-import-request-btn" title="Import Request">
-    <i class="fa fa-download" aria-hidden="true"></i>
+<a class="btn btn-primary btn-sm" id="vschc-import-request-btn" title="Load Request Settings From File">
+    <i class="fa fa-book" aria-hidden="true"></i>
 </a>
 
-<a class="btn btn-secondary btn-sm" id="vschc-export-request-btn" title="Export Request">
-    <i class="fa fa-upload" aria-hidden="true"></i>
+<a class="btn btn-secondary btn-sm" id="vschc-export-request-btn" title="Save Request Settings To File">
+    <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
 </a>
 `;
             },
@@ -595,14 +663,14 @@ export class HTTPRequest extends HTTPRequestBase {
         }, 'Really remove all headers?');
     }
 
-    private async resetResponse() {
+    private async resetResponses() {
         const ME = this;
 
         await vschc.confirm(async (yes) => {
             if (yes) {
-                await ME.postMessage('resetResponseCompleted');
+                await ME.postMessage('resetResponsesCompleted');
             }
-        }, 'Are you sure to reset the current response?');
+        }, 'Are you sure to reset the current list of responses?');
     }
 
     private async saveContent(data: SaveContentData) {
@@ -790,6 +858,48 @@ export class HTTPRequest extends HTTPRequestBase {
 
 
 /**
+ * Adds a request to the global list.
+ *
+ * @param {IHTTPRequest} request The request to add.
+ *
+ * @return {boolean} Item has been added or not.
+ */
+export function addRequest(request: IHTTPRequest) {
+    if (request) {
+        return REQUESTS.push( request );
+    }
+
+    return false;
+}
+
+/**
+ * Removes a request from the global list.
+ *
+ * @param {IHTTPRequest} request The request to remove.
+ *
+ * @return {IHTTPRequest[]} The list of removed items.
+ */
+export function removeRequest(request: IHTTPRequest) {
+    const REMOVED_REQUESTS: IHTTPRequest[] = [];
+
+    if (request) {
+        for (let i = 0; i < REQUESTS.length; ) {
+            const R = REQUESTS[i];
+
+            if (R.id === request.id) {
+                REQUESTS.splice(i, 1);
+
+                REMOVED_REQUESTS.push(R);
+            } else {
+                ++i;
+            }
+        }
+    }
+
+    return REMOVED_REQUESTS;
+}
+
+/**
  * Starts a new request.
  *
  * @param {StartNewRquestOptions} [opts] Custom options.
@@ -805,6 +915,7 @@ export async function startNewRequest(opts?: StartNewRquestOptions) {
 
         await newRequest.start(opts);
 
+        addRequest( newRequest );
         return newRequest;
     } catch (e) {
         vscode_helpers.tryDispose(newRequest);

@@ -20,12 +20,26 @@
 import * as _ from 'lodash';
 import * as FSExtra from 'fs-extra';
 const MergeDeep = require('merge-deep');
+import * as MimeTypes from 'mime-types';
 import * as Path from 'path';
 import * as OS from 'os';
 import * as vschc_requests from './requests';
 import * as vschc_workspaces from './workspaces';
 import * as vscode from 'vscode';
 import * as vscode_helpers from 'vscode-helpers';
+
+
+/**
+ * Extenstion of 'vscode.OpenDialogOptions' interface.
+ */
+export interface OpenDialogOptions extends vscode.OpenDialogOptions {
+}
+
+/**
+ * Extenstion of 'vscode.SaveDialogOptions' interface.
+ */
+export interface SaveDialogOptions extends vscode.SaveDialogOptions {
+}
 
 
 let extension: vscode.ExtensionContext;
@@ -66,13 +80,17 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.commands.registerCommand('extension.http.client.newRequestForEditor', async function(file?: vscode.Uri) {
                 try {
                     let text: string | false = false;
+                    let headers: any;
+                    let editorFile: string | false = false;
 
                     if (arguments.length > 0) {
                         text = await FSExtra.readFile(file.fsPath, 'binary');
+                        editorFile = file.fsPath;
                     } else {
                         const EDITOR = vscode.window.activeTextEditor;
                         if (EDITOR && EDITOR.document) {
                             text = EDITOR.document.getText();
+                            editorFile = EDITOR.document.fileName;
                         }
                     }
 
@@ -81,8 +99,20 @@ export function activate(context: vscode.ExtensionContext) {
                             'No editor (content) found!'
                         );
                     } else {
+                        if (false !== editorFile && !vscode_helpers.isEmptyString(editorFile)) {
+                            try {
+                                const CONTENT_TYPE = MimeTypes.lookup(editorFile);
+                                if (false !== CONTENT_TYPE) {
+                                    headers = {
+                                        'Content-Type': CONTENT_TYPE,
+                                    };
+                                }
+                            } catch { }
+                        }
+
                         await vschc_requests.startNewRequest({
                             body: vscode_helpers.toStringSafe( text ),
+                            headers: headers,
                             showOptions: vscode.ViewColumn.Two,
                         });
                     }
@@ -185,7 +215,6 @@ export function deactivate() {
     if (isDeactivating) {
         return;
     }
-
     isDeactivating = true;
 }
 
@@ -206,15 +235,15 @@ export function getUsersExtensionDir() {
  * Invokes an action for an 'oprn files' dialog.
  *
  * @param {Function} action The action to invoke.
- * @param {vscode.OpenDialogOptions} [options] Custom options.
+ * @param {OpenDialogOptions} [options] Custom options.
  *
  * @return {Promise<TResult>} The promise with the result of the action.
  */
 export async function openFiles<TResult = any>(
     action: (files: vscode.Uri[]) => TResult | PromiseLike<TResult>,
-    options?: vscode.OpenDialogOptions
+    options?: OpenDialogOptions
 ): Promise<TResult> {
-    const DEFAULT_OPTS: vscode.OpenDialogOptions = {
+    const DEFAULT_OPTS: OpenDialogOptions = {
         canSelectFiles: true,
         canSelectFolders: false,
         canSelectMany: false,
@@ -228,7 +257,7 @@ export async function openFiles<TResult = any>(
         }
     } catch { }
 
-    const OPTS: vscode.OpenDialogOptions = MergeDeep(DEFAULT_OPTS, options);
+    const OPTS: OpenDialogOptions = MergeDeep(DEFAULT_OPTS, options);
 
     const FILES = await vscode.window.showOpenDialog(OPTS);
     if (FILES && FILES.length > 0) {
@@ -242,15 +271,15 @@ export async function openFiles<TResult = any>(
  * Invokes an action for an 'oprn files' dialog.
  *
  * @param {Function} action The action to invoke.
- * @param {vscode.SaveDialogOptions} [options] Custom options.
+ * @param {SaveDialogOptions} [options] Custom options.
  *
  * @return {Promise<TResult>} The promise with the result of the action.
  */
 export async function saveFile<TResult = any>(
     action: (file: vscode.Uri) => TResult | PromiseLike<TResult>,
-    options?: vscode.SaveDialogOptions
+    options?: SaveDialogOptions
 ): Promise<TResult> {
-    const DEFAULT_OPTS: vscode.SaveDialogOptions = {
+    const DEFAULT_OPTS: SaveDialogOptions = {
         saveLabel: 'Save',
     };
 
@@ -261,7 +290,7 @@ export async function saveFile<TResult = any>(
         }
     } catch { }
 
-    const OPTS: vscode.SaveDialogOptions = MergeDeep(DEFAULT_OPTS, options);
+    const OPTS: SaveDialogOptions = MergeDeep(DEFAULT_OPTS, options);
 
     const FILE = await vscode.window.showSaveDialog(OPTS);
     if (FILE) {

@@ -2,7 +2,7 @@
     "name": "vscode-http-client",
     "displayName": "HTTP Client",
     "description": "Simple way to do HTTP requests.",
-    "version": "0.10.0",
+    "version": "0.11.0",
     "publisher": "mkloubert",
     "engines": {
         "vscode": "^1.23.0"
@@ -31,7 +31,7 @@
             },
             {
                 "command": "extension.http.client.newRequestForEditor",
-                "title": "Start HTTP request for editor...",
+                "title": "New HTTP request for current editor...",
                 "category": "HTTP Client"
             },
             {
@@ -135,6 +135,7 @@
         "@types/mime-types": "^2.1.0",
         "@types/mocha": "^2.2.42",
         "@types/node": "^7.0.43",
+        "@types/uuid": "^3.4.3",
         "tslint": "^5.8.0",
         "typescript": "^2.6.1",
         "vscode": "^1.1.6"
@@ -145,6 +146,7 @@
         "lodash": "^4.17.10",
         "merge-deep": "^3.0.1",
         "mime-types": "^2.1.18",
+        "uuid": "^3.2.1",
         "vscode-helpers": "^1.10.0"
     }
 }
