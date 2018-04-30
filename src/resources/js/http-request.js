@@ -1,4 +1,6 @@
 
+let vschc_do_not_show_body_from_file_btn = false;
+
 function vschc_add_header_row(name, value) {
     const CARD = jQuery('#vschc-headers-card');
     const CARD_BODY = CARD.find('.card-body');
@@ -533,18 +535,34 @@ function vschc_update_body_area() {
     const BODY_FILE     = jQuery('#vschc-input-body-file');
     const COL_BODY_TEXT = jQuery('#vschc-input-body-text-col');
     const COL_FILE_TEXT = jQuery('#vschc-input-body-file-col');
-    const COL_FROM_FILE = jQuery('#vschc-btn-from-file-col');    
 
     if (vschc_is_empty_str( BODY_FILE.val() )) {
         COL_FILE_TEXT.hide();
-
         COL_BODY_TEXT.show();
-        COL_FROM_FILE.show();
+
+        vschc_update_body_from_file_btn_visibility(true);
     } else {
         COL_FILE_TEXT.show();
-
         COL_BODY_TEXT.hide();
-        COL_FROM_FILE.hide();
+
+        vschc_update_body_from_file_btn_visibility(false);
+    }
+}
+
+function vschc_update_body_from_file_btn_visibility(isVisible) {
+    if (arguments.length < 1) {
+        vschc_update_body_area();
+        return;
+    }
+
+    const COL_FROM_FILE = jQuery('#vschc-btn-from-file-col');    
+
+    COL_FROM_FILE.hide();
+
+    if (isVisible) {
+        if (!vschc_do_not_show_body_from_file_btn) {
+            COL_FROM_FILE.show();
+        }    
     }
 }
 
@@ -653,7 +671,7 @@ jQuery(() => {
                             });
                         } else {
                             vschc_set_body_content({
-                                data: body.content
+                                data: atob(body.content)
                             });
                         }
                     } else {
@@ -785,7 +803,16 @@ jQuery(() => {
 
             case 'setBodyContentFromFile':
                 vschc_set_body_content_from_file(MSG.data);
-                break;            
+                break;
+
+            case 'setIfBodyContentIsReadOnly':
+                jQuery('#vschc-input-body-text').prop('readonly', !!MSG.data);
+                break;
+
+            case 'setIfHideBodyFromFileButton':
+                vschc_do_not_show_body_from_file_btn = !!MSG.data;
+                vschc_update_body_from_file_btn_visibility();
+                break;
         }
     });
 
