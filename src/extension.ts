@@ -78,10 +78,14 @@ export function activate(context: vscode.ExtensionContext) {
 
             // newRequestForEditor
             vscode.commands.registerCommand('extension.http.client.newRequestForEditor', async function(file?: vscode.Uri) {
+                let newRequest: vschc_requests.IHTTPRequest;
                 try {
-                    let text: string | false = false;
-                    let headers: any;
+                    const DISPOSABLES: vscode.Disposable[] = [];
                     let editorFile: string | false = false;
+                    let headers: any;
+                    let fileWatcher: vscode.FileSystemWatcher | false;
+                    let hideBodyFromFileButton: boolean;
+                    let text: string | false = false;
 
                     if (arguments.length > 0) {
                         text = await FSExtra.readFile(file.fsPath, 'binary');
@@ -108,15 +112,119 @@ export function activate(context: vscode.ExtensionContext) {
                                     };
                                 }
                             } catch { }
+
+                            try {
+                                if (await vscode_helpers.isFile(editorFile)) {
+                                    let newEditorFileWatcher: vscode.FileSystemWatcher;
+                                    try {
+                                        newEditorFileWatcher = vscode.workspace.createFileSystemWatcher(
+                                            editorFile,
+                                            false, false, false,
+                                        );
+
+                                        const INVOKE_FOR_FILE = (action: Function) => {
+                                            const REQUEST = newRequest;
+                                            if (!REQUEST) {
+                                                return;
+                                            }
+
+                                            try {
+                                                Promise.resolve(action()).then(() => {}, (err) => {
+                                                    showError(err);
+                                                });
+                                            } catch (e) {
+                                                showError(e);
+                                            }
+                                        };
+
+                                        let isSettingBodyContent = false;
+                                        const SET_BODY_CONTENT = async function(content: string) {
+                                            const ARGS = arguments;
+
+                                            if (isSettingBodyContent) {
+                                                setTimeout(() => {
+                                                    SET_BODY_CONTENT.apply(null, ARGS);
+                                                }, 1000);
+
+                                                return;
+                                            }
+
+                                            isSettingBodyContent = true;
+                                            try {
+                                                const REQUEST = newRequest;
+                                                if (REQUEST) {
+                                                    await REQUEST.postMessage('setBodyContent', {
+                                                        data: vscode_helpers.toStringSafe(content),
+                                                    });
+                                                }
+                                            } finally {
+                                                isSettingBodyContent = false;
+                                            }
+                                        };
+
+                                        newEditorFileWatcher.onDidChange((e) => {
+                                            INVOKE_FOR_FILE(async () => {
+                                                if (await vscode_helpers.isFile(e.fsPath)) {
+                                                    await SET_BODY_CONTENT(
+                                                        await FSExtra.readFile(e.fsPath, 'binary')
+                                                    );
+                                                }
+                                            });
+                                        });
+                                        newEditorFileWatcher.onDidCreate((e) => {
+                                            INVOKE_FOR_FILE(async () => {
+                                                if (await vscode_helpers.isFile(e.fsPath)) {
+                                                    await SET_BODY_CONTENT(
+                                                        await FSExtra.readFile(e.fsPath, 'binary')
+                                                    );
+                                                }
+                                            });
+                                        });
+
+                                        fileWatcher = newEditorFileWatcher;
+                                    } catch (e) {
+                                        vscode_helpers.tryDispose( newEditorFileWatcher );
+
+                                        throw e;
+                                    }
+                                }
+                            } catch {}
                         }
 
-                        await vschc_requests.startNewRequest({
+                        if (false !== fileWatcher) {
+                            DISPOSABLES.push( fileWatcher );
+
+                            hideBodyFromFileButton = true;
+                        }
+
+                        newRequest = await vschc_requests.startNewRequest({
                             body: vscode_helpers.toStringSafe( text ),
+                            disposables: DISPOSABLES,
                             headers: headers,
+                            hideBodyFromFileButton: hideBodyFromFileButton,
+                            isBodyContentReadOnly: false !== fileWatcher,
                             showOptions: vscode.ViewColumn.Two,
+                        });
+
+                        newRequest.onDidChangeVisibility(async (isVisible) => {
+                            try {
+                                if (isVisible) {
+                                    if (false !== editorFile && !vscode_helpers.isEmptyString(editorFile)) {
+                                        if (await vscode_helpers.isFile(editorFile)) {
+                                            await newRequest.postMessage('setBodyContent', {
+                                                data: await FSExtra.readFile(editorFile, 'ascii'),
+                                            });
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                showError(e);
+                            }
                         });
                     }
                 } catch (e) {
+                    vscode_helpers.tryDispose(newRequest);
+
                     showError(e);
                 }
             }),

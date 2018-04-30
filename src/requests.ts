@@ -38,6 +38,23 @@ export interface IHTTPRequest extends vscode.Disposable {
      * Gets the ID of that instance.
      */
     readonly id: any;
+    /**
+     * Registers an event listener that is invoked when ths visibility of the web view changes.
+     *
+     * @param {Function} listener The listener.
+     *
+     * @return this
+     */
+    readonly onDidChangeVisibility: (listener: (isVisible: boolean) => void | PromiseLike<void>) => this;
+    /**
+     * Posts a message to the view.
+     *
+     * @param {string} command The name of the command to send.
+     * @param {any} [data] The optional data for the command.
+     *
+     * @return {Promise<boolean>} The promise that indicates if operation was successful or not.
+     */
+    readonly postMessage: (command: string, data?: any) => PromiseLike<boolean>;
 }
 
 /**
@@ -129,6 +146,14 @@ export interface StartNewRquestOptions {
      */
     headers?: any;
     /**
+     * Hide 'From File' button or not.
+     */
+    hideBodyFromFileButton?: boolean;
+    /**
+     * Indicates if body content should be readonly or not.
+     */
+    isBodyContentReadOnly?: boolean;
+    /**
      * Display options for the tab of the underlying view.
      */
     showOptions?: vscode.ViewColumn;
@@ -206,6 +231,28 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
     }
 
     /**
+     * @inheritdoc
+     */
+    public onDidChangeVisibility(listener: (isVisible) => void | PromiseLike<void>) {
+        const ME = this;
+
+        if (listener) {
+            this.panel.onDidChangeViewState((e) => {
+                try {
+                    Promise.resolve( listener(e.webviewPanel.visible) ).then(() => {
+                    }, (err) => {
+                        ME.showError(err);
+                    });
+                } catch (e) {
+                    ME.showError(e);
+                }
+            });
+        }
+
+        return this;
+    }
+
+    /**
      * Is invoked after the underlying panel has been disposed.
      */
     protected async onDidDispose() {
@@ -247,12 +294,7 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
     }
 
     /**
-     * Posts a message to the view.
-     *
-     * @param {string} command The name of the command to send.
-     * @param {any} [data] The optional data for the command.
-     *
-     * @return {Promise<boolean>} The promise that indicates if operation was successful or not.
+     * @inheritdoc
      */
     public async postMessage(command: string, data?: any) {
         const MSG: WebViewMessage = {
@@ -483,6 +525,16 @@ export class HTTPRequest extends HTTPRequestBase {
                         await this.postMessage('importRequestCompleted', this.startOptions.data);
                     }
 
+                    if (!_.isNil(this.startOptions.isBodyContentReadOnly)) {
+                        await this.postMessage('setIfBodyContentIsReadOnly',
+                                               vscode_helpers.toBooleanSafe(this.startOptions.isBodyContentReadOnly));
+                    }
+
+                    if (!_.isNil(this.startOptions.hideBodyFromFileButton)) {
+                        await this.postMessage('setIfHideBodyFromFileButton',
+                                               vscode_helpers.toBooleanSafe(this.startOptions.hideBodyFromFileButton));
+                    }
+
                     await this.postMessage('findInitialControlToFocus');
                 }
                 break;
@@ -585,7 +637,7 @@ export class HTTPRequest extends HTTPRequestBase {
                     <div class="col-sm-10">
                         <a class="btn btn-primary" id="vschc-btn-from-file" role="button">
                             <i class="fa fa-file-text" aria-hidden="true"></i>
-                            <span>From file</span>
+                            <span>From File</span>
                         </a>
                     </div>
                 </div>
@@ -904,9 +956,9 @@ export function removeRequest(request: IHTTPRequest) {
  *
  * @param {StartNewRquestOptions} [opts] Custom options.
  *
- * @return {Promise<HTTPRequest>} The promise with the new request object.
+ * @return {Promise<IHTTPRequest>} The promise with the new request object.
  */
-export async function startNewRequest(opts?: StartNewRquestOptions) {
+export async function startNewRequest(opts?: StartNewRquestOptions): Promise<IHTTPRequest> {
     let newRequest: HTTPRequest;
     try {
         newRequest = new HTTPRequest();
