@@ -12,8 +12,9 @@ Simple way to do [HTTP requests](https://en.wikipedia.org/wiki/Hypertext_Transfe
 ## Table of contents
 
 1. [Install](#install-)
-2. [Support and contribute](#support-and-contribute-)
-3. [Related projects](#related-projects-)
+2. [Syntaxes](#syntaxes-)
+3. [Support and contribute](#support-and-contribute-)
+4. [Related projects](#related-projects-)
    * [vscode-helpers](#vscode-helpers-)
 
 ## Install [[&uarr;](#table-of-contents)]
@@ -25,6 +26,19 @@ ext install vscode-http-client
 ```
 
 Or search for things like `vscode-http-client` in your editor.
+
+## Syntaxes [[&uarr;](#table-of-contents)]
+
+[Syntax highlighting](https://highlightjs.org/) is supported for the following languages:
+
+* CSS
+* HTML
+* HTTP
+* JavaScript
+* JSON
+* Markdown
+* XML
+* YAML
 
 ## Support and contribute [[&uarr;](#table-of-contents)]
 

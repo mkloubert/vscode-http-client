@@ -107,9 +107,10 @@ export interface ResourceUriResolver {
 export function generateFooter(opts: GenerateFooterOptions) {
     return `
     <link rel="stylesheet" href="${ opts.getResourceUri('css/style.css') }">
-    <link rel="stylesheet" href="${ opts.getResourceUri('css/' + opts.styleFile) }.css">
+    <link rel="stylesheet" href="${ opts.getResourceUri('css/' + opts.styleFile + '.css') }">
 
-    <script src="${ opts.getResourceUri('js/' + opts.scriptFile) }.js"></script>
+    <script src="${ opts.getResourceUri('js/script.js') }"></script>
+    <script src="${ opts.getResourceUri('js/' + opts.scriptFile + '.js') }"></script>
   </body>
 </html>`;
 }

@@ -1,6 +1,4 @@
 
-let vschcNextHeaderRowId = -1;
-
 function vschc_add_header_row(name, value) {
     const CARD = jQuery('#vschc-headers-card');
     const CARD_BODY = CARD.find('.card-body');
@@ -17,9 +15,8 @@ function vschc_add_header_row(name, value) {
             const ROW = jQuery(this);
 
             const NAME_FIELD = ROW.find('.vschc-name input');
-            const NAME = NAME_FIELD.val();
 
-            if (!NAME || '' === NAME.trim()) {
+            if (vschc_is_empty_str( NAME_FIELD.val() )) {
                 if (!controlToFocus) {
                     controlToFocus = NAME_FIELD;
                 }
@@ -30,14 +27,11 @@ function vschc_add_header_row(name, value) {
     if (!controlToFocus) {
         const TABLE_BODY = TABLE.find('tbody');
 
-        const ID = ++vschcNextHeaderRowId;
-
         const NEW_ROW = jQuery('<tr class="vschc-header-row">' + 
-                            '<td class="vschc-name" />' + 
-                            '<td class="vschc-value" />' + 
-                            '<td class="vschc-actions" />' + 
-                            '</tr>');
-        NEW_ROW.attr('id', 'vschc-header-row-' + ID);
+                               '<td class="vschc-name" />' + 
+                               '<td class="vschc-value" />' + 
+                               '<td class="vschc-actions" />' + 
+                               '</tr>');
 
         const NAME_FIELD = jQuery('<input type="text" class="form-control" />');
         const VALUE_FIELD = jQuery('<input type="text" class="form-control" />');
@@ -51,10 +45,8 @@ function vschc_add_header_row(name, value) {
 
             let controlToFocus = false;
 
-            const NAME = NAME_FIELD.val();
-            if (NAME && '' !== NAME.trim()) {
-                const VALUE = VALUE_FIELD.val();
-                if (!VALUE || '' === VALUE.trim()) {
+            if (!vschc_is_empty_str( NAME_FIELD.val() )) {
+                if (vschc_is_empty_str( VALUE_FIELD.val() )) {
                     controlToFocus = VALUE_FIELD;
                 }
             }
@@ -76,12 +68,8 @@ function vschc_add_header_row(name, value) {
             
             let controlToFocus = false;
 
-            const VALUE = VALUE_FIELD.val();
-            if (VALUE && '' !== VALUE.trim()) {
-                const NAME = NAME_FIELD.val();
-                if (!NAME || '' === NAME.trim()) {
-                    controlToFocus = NAME_FIELD;
-                }
+            if (vschc_is_empty_str( NAME_FIELD.val() )) {
+                controlToFocus = NAME_FIELD;
             }
 
             if (controlToFocus) {
@@ -93,8 +81,8 @@ function vschc_add_header_row(name, value) {
         VALUE_FIELD.appendTo( NEW_ROW.find('.vschc-value') );
 
         const REMOVE_BTN = jQuery('<a class="btn btn-sm btn-warning align-middle vschc-remove-btn" title="Remove Header">' + 
-                                '<i class="fa fa-trash" aria-hidden="true"></i>' + 
-                                '</a>');
+                                  '<i class="fa fa-trash" aria-hidden="true"></i>' + 
+                                  '</a>');
         REMOVE_BTN.on('click', function() {
             NEW_ROW.remove();
 
@@ -103,8 +91,8 @@ function vschc_add_header_row(name, value) {
         REMOVE_BTN.appendTo( NEW_ROW.find('.vschc-actions') );
 
         if (arguments.length > 0) {
-            NAME_FIELD.val( name );
-            VALUE_FIELD.val( value );
+            NAME_FIELD.val( vschc_to_string(name) );
+            VALUE_FIELD.val( vschc_to_string(value) );
         }
 
         NEW_ROW.appendTo( TABLE_BODY );
@@ -118,30 +106,27 @@ function vschc_add_header_row(name, value) {
 }
 
 function vschc_auto_add_content_type_header(mime) {
-    if (!mime) {
+    mime = vschc_normalize_str(mime);
+    if ('' === mime) {
         return;
     }
 
-    mime = ('' + mime).toLowerCase().trim();
-
     let addContentType = true;
 
-    const HEADERS_CARD = jQuery('#vschc-headers-card');
+    const HEADERS_CARD      = jQuery('#vschc-headers-card');
     const HEADERS_CARD_BODY = HEADERS_CARD.find('.card-body');
 
     HEADERS_CARD_BODY.find('table tbody tr.vschc-header-row').each(function() {
         const ROW = jQuery(this);
 
-        const NAME = ROW.find('.vschc-name input').val();
-        if (NAME) {
-            if ('content-type' === NAME.toLowerCase().trim()) {
-                addContentType = false;
-            }
+        const NAME = vschc_normalize_str( ROW.find('.vschc-name input').val() );
+        if ('content-type' === NAME) {
+            addContentType = false;
         }
     });
 
     if (addContentType) {
-        vschc_add_header_row( 'Content-type', mime );
+        vschc_add_header_row('Content-Type', mime);
 
         vschc_remove_empty_headers();
     }
@@ -164,15 +149,15 @@ function vschc_body_content() {
 function vschc_get_headers() {
     const HEADERS = {};
 
-    const HEADERS_CARD = jQuery('#vschc-headers-card');
+    const HEADERS_CARD      = jQuery('#vschc-headers-card');
     const HEADERS_CARD_BODY = HEADERS_CARD.find('.card-body');
 
     HEADERS_CARD_BODY.find('table tbody tr.vschc-header-row').each(function() {
         const ROW = jQuery(this);
 
-        const NAME = ROW.find('.vschc-name input').val();
-        if (NAME) {
-            HEADERS[ ('' + NAME).trim() ] = ROW.find('.vschc-value input').val();
+        const NAME = vschc_normalize_str( ROW.find('.vschc-name input').val() );
+        if ('' !== NAME) {
+            HEADERS[ NAME ] = vschc_to_string( ROW.find('.vschc-value input').val() );
         }
     });
 
@@ -180,39 +165,38 @@ function vschc_get_headers() {
 }
 
 function vschc_prepare_request() {
-    const URL_FIELD = jQuery('#vschc-input-url');
+    const URL_FIELD    = jQuery('#vschc-input-url');
     const METHOD_FIELD = jQuery('#vschc-input-method');
-    const TITLE_FIELD = jQuery('#vschc-input-title');
+    const TITLE_FIELD  = jQuery('#vschc-input-title');
 
-    let url = URL_FIELD.val();
-    if (url) {
-        url = url.trim();
-    }
+    const URL = vschc_to_string( URL_FIELD.val() ).trim();
 
     const IS_FILE = jQuery('#vschc-input-body-file-col').is(':visible');
 
     return {
         body: {
             content: vschc_body_content(),
-            file: IS_FILE ? jQuery('#vschc-body-file-path .vschc-path').text() : false,
-            fileSize: IS_FILE ? parseInt(jQuery('#vschc-input-body-file-col .vschc-size').text()) : false
+            file: IS_FILE ? jQuery('#vschc-body-file-path .vschc-path').text()
+                          : false,
+            fileSize: IS_FILE ? parseInt( vschc_to_string(jQuery('#vschc-input-body-file-col .vschc-size').text()).trim() )
+                              : false
         },
         headers: vschc_get_headers(),
         method: METHOD_FIELD.val(),
         title: TITLE_FIELD.val(),
-        url: url
+        url: URL
     };
 }
 
 function vschc_remove_empty_headers() {
-    const HEADERS_CARD = jQuery('#vschc-headers-card');
+    const HEADERS_CARD      = jQuery('#vschc-headers-card');
     const HEADERS_CARD_BODY = HEADERS_CARD.find('.card-body');
 
     HEADERS_CARD_BODY.find('table tbody tr.vschc-header-row').each(function() {
         const ROW = jQuery(this);
 
-        const NAME = ROW.find('.vschc-name input').val();
-        if (!NAME) {
+        const NAME = vschc_normalize_str( ROW.find('.vschc-name input').val() );
+        if ('' === NAME) {
             ROW.remove();
         }
     });
@@ -228,7 +212,7 @@ function vschc_reset_body_file() {
 }
 
 function vschc_reset_headers() {
-    const CARD = jQuery('#vschc-headers-card');
+    const CARD      = jQuery('#vschc-headers-card');
     const CARD_BODY = CARD.find('.card-body');
 
     CARD_BODY.html('');
@@ -261,7 +245,7 @@ function vschc_send_request() {
 
     const URL_FIELD = jQuery('#vschc-input-url');
 
-    if (!URL_FIELD.val() || URL_FIELD.val().trim().length < 1) {
+    if (vschc_is_empty_str( URL_FIELD.val() )) {
         URL_FIELD.focus();
     } else {
         BTN.addClass('disabled');
@@ -269,7 +253,7 @@ function vschc_send_request() {
         jQuery('#vschc-save-raw-response-btn').hide();
         jQuery('#vschc-reset-response-btn').hide();
 
-        const CARD = jQuery('#vschc-response-card');
+        const CARD      = jQuery('#vschc-response-card');
         const CARD_BODY = CARD.find('.card-body');
 
         CARD_BODY.html('');
@@ -299,7 +283,7 @@ function vschc_set_body_content(content) {
 function vschc_set_body_content_from_file(content) {
     let contentDisplayer;
 
-    const BODY_FILE = jQuery('#vschc-input-body-file');
+    const BODY_FILE      = jQuery('#vschc-input-body-file');
     const BODY_FILE_PATH = jQuery('#vschc-body-file-path');
     
     const BODY_FILE_CONTENT_TO_DISPLAY = jQuery('#vschc-body-file-content-to-display');
@@ -313,7 +297,8 @@ function vschc_set_body_content_from_file(content) {
         BODY_FILE_PATH.find('.vschc-size').text( `${ content.size }` );
 
         if (content.mime) {
-            const MIME = ('' + content.mime).toLowerCase().trim();
+            const MIME = vschc_normalize_str(content.mime);
+
             if (MIME.startsWith('image/')) {
                 contentDisplayer = () => {
                     const IMG = jQuery('<img />');
@@ -340,23 +325,21 @@ function vschc_set_body_content_from_file(content) {
 }
 
 function vschc_update_body_area() {
+    const BODY_FILE     = jQuery('#vschc-input-body-file');
     const COL_BODY_TEXT = jQuery('#vschc-input-body-text-col');
     const COL_FILE_TEXT = jQuery('#vschc-input-body-file-col');
-    const COL_FROM_FILE = jQuery('#vschc-btn-from-file-col');
-    
-    const BODY_FILE = jQuery('#vschc-input-body-file');
-    const BODY_FILE_VAL = BODY_FILE.val();
+    const COL_FROM_FILE = jQuery('#vschc-btn-from-file-col');    
 
-    if (BODY_FILE_VAL && BODY_FILE_VAL.length > 0) {
-        COL_FILE_TEXT.show();
-
-        COL_BODY_TEXT.hide();
-        COL_FROM_FILE.hide();
-    } else {
+    if (vschc_is_empty_str( BODY_FILE.val() )) {
         COL_FILE_TEXT.hide();
 
         COL_BODY_TEXT.show();
         COL_FROM_FILE.show();
+    } else {
+        COL_FILE_TEXT.show();
+
+        COL_BODY_TEXT.hide();
+        COL_FROM_FILE.hide();
     }
 }
 
@@ -387,7 +370,7 @@ jQuery(() => {
 
                     let controlToFocus = false;
 
-                    if (!URL_FIELD.val() || '' === URL_FIELD.val().trim()) {
+                    if (vschc_is_empty_str( URL_FIELD.val() )) {
                         controlToFocus = URL_FIELD;
                     }
 
@@ -399,9 +382,8 @@ jQuery(() => {
                             const ROW = jQuery(this);
 
                             const NAME_FIELD = ROW.find('.vschc-name input');
-                            const NAME = NAME_FIELD.val();
 
-                            if (!NAME || '' === NAME.trim()) {
+                            if (vschc_is_empty_str( NAME_FIELD.val() )) {
                                 if (!controlToFocus) {
                                     controlToFocus = NAME_FIELD;
                                 }
@@ -421,16 +403,16 @@ jQuery(() => {
                 {
                     const REQUEST = MSG.data;
 
-                    let body = REQUEST.body;
+                    let body    = REQUEST.body;
                     let headers = REQUEST.headers;
-                    let method = REQUEST.method;
-                    let title = REQUEST.title;
-                    let url = REQUEST.url;
+                    let method  = REQUEST.method;
+                    let title   = REQUEST.title;
+                    let url     = REQUEST.url;
 
-                    if (!method) {
+                    if (vschc_is_empty_str(method)) {
                         method = 'GET';
                     }
-                    if (!url) {
+                    if (vschc_is_empty_str(url)) {
                         url = '';
                     }
 
@@ -438,15 +420,15 @@ jQuery(() => {
                         headers = {};
                     }
                     {
-                        const HEADERS_CARD = jQuery('#vschc-headers-card');
+                        const HEADERS_CARD      = jQuery('#vschc-headers-card');
                         const HEADERS_CARD_BODY = HEADERS_CARD.find('.card-body');
 
                         HEADERS_CARD_BODY.find('table tbody tr.vschc-header-row').remove();
 
                         for (const H in headers) {
-                            const NAME = '' + H;
-                            if ('' !== NAME.trim()) {
-                                vschc_add_header_row(NAME, headers[H]);
+                            if (!vschc_is_empty_str(H)) {
+                                vschc_add_header_row(vschc_to_string(H),
+                                                     headers[H]);
                             }
                         }
                     }
@@ -483,13 +465,11 @@ jQuery(() => {
                 {
                     const TITLE_FIELD = jQuery('#vschc-input-title');
 
-                    TITLE_FIELD.val( '' + MSG.data );
+                    TITLE_FIELD.val( vschc_to_string(MSG.data) );
                     TITLE_FIELD.on('change', () => {
-                        const NEW_VALUE = TITLE_FIELD.val();
-
                         vscode.postMessage({
                             command: 'titleUpdated',
-                            data: TITLE_FIELD.val(),
+                            data: vschc_to_string( TITLE_FIELD.val() ),
                         });
                     });
                 }                
@@ -507,14 +487,14 @@ jQuery(() => {
                 {
                     const RESPONSE_DATA = MSG.data;
 
-                    const CARD = jQuery('#vschc-response-card');
+                    const CARD      = jQuery('#vschc-response-card');
                     const CARD_BODY = CARD.find('.card-body');
 
                     CARD_BODY.html('');
 
-                    if ('' !== RESPONSE_DATA.error) {
+                    if (!vschc_is_empty_str( RESPONSE_DATA.error )) {
                         const ALERT = jQuery('<div class="alert alert-danger" role="alert" />');
-                        ALERT.text( RESPONSE_DATA.error );
+                        ALERT.text( vschc_to_string(RESPONSE_DATA.error) );
 
                         ALERT.appendTo( CARD_BODY );
                     } else {
@@ -542,10 +522,8 @@ jQuery(() => {
                         let suggestedExtension = RESPONSE.suggestedExtension;
 
                         if (RESPONSE.headers) {
-                            const CONTENT_TYPE = RESPONSE.headers[ 'Content-Type' ];
-                            if (CONTENT_TYPE) {
-                                const MIME = CONTENT_TYPE.toLowerCase().trim();
-
+                            const MIME = vschc_get_content_type(RESPONSE.headers);
+                            if ('' !== MIME) {
                                 let jsonResp;
                                 try {
                                     jsonResp = JSON.parse( atob( RESPONSE.body ) );
@@ -567,8 +545,19 @@ jQuery(() => {
 
                                         suggestedExtension = 'json';
                                     };
-                                }
-                                else if (MIME.startsWith('text/html')) {
+                                } else if (vschc_is_mime(MIME, [ 'text/css' ])) {
+                                    contentDisplayer = () => {
+                                        const CSS = atob( RESPONSE.body );
+
+                                        const CSS_PRE = jQuery('<pre><code class="css" /></pre>');
+                                        const CSS_CODE = CSS_PRE.find('code');
+
+                                        CSS_CODE.text(CSS);
+
+                                        CSS_PRE.appendTo( CARD_BODY );
+                                        hljs.highlightBlock( CSS_CODE[0] );
+                                    };
+                                } else if (vschc_is_mime(MIME, [ 'text/html' ])) {
                                     contentDisplayer = () => {
                                         const HTML = atob( RESPONSE.body );
 
@@ -579,6 +568,54 @@ jQuery(() => {
 
                                         HTML_PRE.appendTo( CARD_BODY );
                                         hljs.highlightBlock( HTML_CODE[0] );
+                                    };
+                                } else if (vschc_is_mime(MIME, [ 'text/markdown' ])) {
+                                    contentDisplayer = () => {
+                                        const MD = atob( RESPONSE.body );
+
+                                        const MD_PRE = jQuery('<pre><code class="markdown" /></pre>');
+                                        const MD_CODE = MD_PRE.find('code');
+
+                                        MD_CODE.text(MD);
+
+                                        MD_PRE.appendTo( CARD_BODY );
+                                        hljs.highlightBlock( MD_CODE[0] );
+                                    };
+                                } else if (vschc_is_mime(MIME, [ 'text/xml' ])) {
+                                    contentDisplayer = () => {
+                                        const XML = atob( RESPONSE.body );
+
+                                        const XML_PRE = jQuery('<pre><code class="xml" /></pre>');
+                                        const XML_CODE = XML_PRE.find('code');
+
+                                        XML_CODE.text(XML);
+
+                                        XML_PRE.appendTo( CARD_BODY );
+                                        hljs.highlightBlock( XML_CODE[0] );
+                                    };
+                                } else if (vschc_is_mime(MIME, [ 'application/javascript', 'text/javascript' ])) {
+                                    contentDisplayer = () => {
+                                        const JS = atob( RESPONSE.body );
+
+                                        const JS_PRE = jQuery('<pre><code class="javascript" /></pre>');
+                                        const JS_CODE = JS_PRE.find('code');
+
+                                        JS_CODE.text(JS);
+
+                                        JS_PRE.appendTo( CARD_BODY );
+                                        hljs.highlightBlock( JS_CODE[0] );
+                                    };
+                                } else if (vschc_is_mime(MIME, [ 'application/x-yaml', 'text/yaml' ])) {
+                                    contentDisplayer = () => {
+                                        const YAML = atob( RESPONSE.body );
+
+                                        const YAML_PRE = jQuery('<pre><code class="yaml" /></pre>');
+                                        const YAML_CODE = YAML_PRE.find('code');
+
+                                        YAML_CODE.text(YAML);
+
+                                        YAML_PRE.appendTo( CARD_BODY );
+                                        hljs.highlightBlock( YAML_CODE[0] );
                                     };
                                 } else if (MIME.startsWith('text/')) {
                                     contentDisplayer = () => {
