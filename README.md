@@ -12,9 +12,11 @@ Simple way to do [HTTP requests](https://en.wikipedia.org/wiki/Hypertext_Transfe
 ## Table of contents
 
 1. [Install](#install-)
-2. [Syntaxes](#syntaxes-)
-3. [Support and contribute](#support-and-contribute-)
-4. [Related projects](#related-projects-)
+2. [How to use](#how-to-use-)
+   * [How to execute](#how-to-execute-)
+3. [Syntaxes](#syntaxes-)
+4. [Support and contribute](#support-and-contribute-)
+5. [Related projects](#related-projects-)
    * [vscode-helpers](#vscode-helpers-)
 
 ## Install [[&uarr;](#table-of-contents)]
@@ -26,6 +28,19 @@ ext install vscode-http-client
 ```
 
 Or search for things like `vscode-http-client` in your editor.
+
+## How to use [[&uarr;](#table-of-contents)]
+
+### How to execute [[&uarr;](#how-to-use-)]
+
+Press `F1` and enter one of the following commands:
+
+| Name | Description | command |
+| ---- | --------- | --------- |
+| `HTTP Client: Create new script ...` | Opens a new editor with an example script. | `extension.http.client.newRequestScript` |
+| `HTTP Client: New HTTP request ...` | Opens a new HTTP request form. | `extension.http.client.newRequest` |
+| `HTTP Client: Send editor content as HTTP request ...` | Uses the content of a visible editor as body for a HTTP request. | `extension.http.client.newRequestForEditor` |
+| `HTTP Client: Send file as HTTP request ...` | Uses a (local) file as body for a HTTP request. | `extension.http.client.newRequestFromFile` |
 
 ## Syntaxes [[&uarr;](#table-of-contents)]
 

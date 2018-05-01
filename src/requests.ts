@@ -118,6 +118,12 @@ interface SendRequestResponse {
     code: number;
     headers: any;
     httpVersion: string;
+    request: {
+        body: string;
+        headers: any;
+        method: string;
+        url: string;
+    };
     suggestedExtension: string | false;
     status: string;
 }
@@ -231,7 +237,7 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
      * Initializes the request.
      */
     public async initialize() {
-        this._resourceRoot = Path.join(__dirname, './resources');
+        this._resourceRoot = Path.join(__dirname, './res');
 
         this._html = '';
 
@@ -360,11 +366,7 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
                     enableScripts: true,
                     retainContextWhenHidden: true,
                     localResourceRoots: [
-                        vscode.Uri.file(
-                            Path.resolve(
-                                Path.join(__dirname, './resources')
-                            )
-                        ),
+                        vscode.Uri.file( ME._resourceRoot ),
                     ]
                 }
             );
@@ -423,36 +425,54 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
  * A HTTP request.
  */
 export class HTTPRequest extends HTTPRequestBase {
+    private createHTTPFromResponse(response: SendRequestResponse) {
+        let http = `HTTP/${ response.httpVersion } ${ response.code } ${ response.status }\r\n`;
+
+        if (response.headers) {
+            for (const H in response.headers) {
+                http += `${H}: ${ response.headers[H] }\r\n`;
+            }
+        }
+
+        http += `\r\n`;
+
+        let data = new Buffer(http, 'ascii');
+        if (response.body) {
+            data = Buffer.concat([
+                data,
+                new Buffer(response.body, 'base64'),
+            ]);
+        }
+
+        return data;
+    }
+
     private async executeScript(request: RequestData) {
         const ME = this;
 
         let result: ExecuteScriptResult;
 
         try {
-            let editor: vscode.TextEditor;
-
             const VISIBLE_EDITORS = vscode_helpers.asArray( vscode.window.visibleTextEditors );
             if (VISIBLE_EDITORS.length > 0) {
-                editor = VISIBLE_EDITORS[0];
-            }
-
-            if (editor) {
-                await vscode.window.withProgress({
-                    cancellable: true,
-                    location: vscode.ProgressLocation.Notification,
-                    title: 'Executing HTTP Script ...'
-                }, async (progress, cancelToken) => {
-                    await vschc_scripts.executeScript({
-                        cancelToken: cancelToken,
-                        code: editor.document.getText(),
-                        handler: ME,
-                        onDidSend: async (err: any, result?: vschc_http.SendHTTPRequestResult) => {
-                            await ME.sendRequestCompleted(err, result);
-                        },
-                        progress: progress,
-                        request: request,
+                for (const EDITOR of VISIBLE_EDITORS) {
+                    await vscode.window.withProgress({
+                        cancellable: true,
+                        location: vscode.ProgressLocation.Notification,
+                        title: 'Executing HTTP Script ...'
+                    }, async (progress, cancelToken) => {
+                        await vschc_scripts.executeScript({
+                            cancelToken: cancelToken,
+                            code: EDITOR.document.getText(),
+                            handler: ME,
+                            onDidSend: async (err: any, result?: vschc_http.SendHTTPRequestResult) => {
+                                await ME.sendRequestCompleted(err, result);
+                            },
+                            progress: progress,
+                            request: request,
+                        });
                     });
-                });
+                }
             } else {
                 vscode.window.showWarningMessage('No open (script) editor found!');
             }
@@ -591,6 +611,10 @@ export class HTTPRequest extends HTTPRequestBase {
 
                     await this.postMessage('findInitialControlToFocus');
                 }
+                break;
+
+            case 'openReponseInEditor':
+                await this.openReponseInEditor(msg.data);
                 break;
 
             case 'resetAllHeaders':
@@ -764,6 +788,15 @@ export class HTTPRequest extends HTTPRequestBase {
         });
     }
 
+    private async openReponseInEditor(response: SendRequestResponse) {
+        const EDITOR = await vscode.workspace.openTextDocument({
+            content: this.createHTTPFromResponse(response).toString('ascii'),
+            language: 'http',
+        });
+
+        await vscode.window.showTextDocument( EDITOR );
+    }
+
     private async resetAllHeaders() {
         const ME = this;
 
@@ -801,26 +834,10 @@ export class HTTPRequest extends HTTPRequestBase {
     }
 
     private async saveRawResponse(response: SendRequestResponse) {
-        let http = `HTTP/${ response.httpVersion } ${ response.code } ${ response.status }\r\n`;
-
-        if (response.headers) {
-            for (const H in response.headers) {
-                http += `${H}: ${ response.headers[H] }\r\n`;
-            }
-        }
-
-        http += `\r\n`;
-
-        let dataToSave = new Buffer(http, 'ascii');
-        if (response.body) {
-            dataToSave = Buffer.concat([
-                dataToSave,
-                new Buffer(response.body, 'base64'),
-            ]);
-        }
+        const DATA_TO_SAVE = this.createHTTPFromResponse(response);
 
         await vschc.saveFile(async (file) => {
-            await FSExtra.writeFile(file.fsPath, dataToSave);
+            await FSExtra.writeFile(file.fsPath, DATA_TO_SAVE);
         }, {
             filters: {
                 'HTTP file': [ 'http' ]
@@ -849,11 +866,27 @@ export class HTTPRequest extends HTTPRequestBase {
             const RESP = result.response;
             const BODY = await vscode_helpers.readAll(RESP);
 
+            let url = `${ result.url.protocol }//`;
+            {
+                if (!_.isNil(result.url.auth)) {
+                    url += vscode_helpers.toStringSafe( result.url.auth ) + '@';
+                }
+
+                url += vscode_helpers.toStringSafe( result.url.host );
+                url += vscode_helpers.toStringSafe( result.url.path );
+            }
+
             r = {
                 body: (BODY && BODY.length > 0) ? BODY.toString('base64') : null,
                 code: RESP.statusCode,
                 headers: {},
                 httpVersion: RESP.httpVersion,
+                request: {
+                    body: await result.readRequestBody(),
+                    headers: vscode_helpers.cloneObject( result.options.headers ),
+                    method: result.options.method,
+                    url: url,
+                },
                 suggestedExtension: false,
                 status: RESP.statusMessage,
             };

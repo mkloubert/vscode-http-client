@@ -280,6 +280,8 @@ for (let i = 0; i < USERS.length; i++) {
         increment: 1.0 / USERS.length * 100.0
     });
 
+    // create new request
+    // s. https://mkloubert.github.io/vscode-http-client/classes/_http_.httpclient.html
     const REQUEST = new_request();
 
     // set custom query / URL parameter(s)
@@ -290,7 +292,7 @@ for (let i = 0; i < USERS.length; i++) {
     REQUEST.header('X-MyApp-Session', SESSION_ID)
            .header('X-MyApp-Time', CURRENT_UTC_TIME.format('YYYY-MM-DD HH:mm:ss'));
 
-    // set custom body
+    // set custom body from a file, e.g.
     REQUEST.body(
         await $fs.readFile(\`/path/to/user/data/user_\${ USER_ID }.json\`)
     );
@@ -305,8 +307,8 @@ for (let i = 0; i < USERS.length; i++) {
         // send error
     }
 
-    // wait about 2.5 seconds
-    await sleep( 2.5 );
+    // wait about 1.5 seconds
+    await sleep( 1.5 );
 }
 `;
 

@@ -9,3 +9,5 @@ tslint.json
 img/**
 pushall.sh
 package-lock.json
+tsdoc/**
+typedoc.cmd

@@ -154,6 +154,8 @@ export function generateHeader(opts: GenerateHeaderOptions) {
                 vschc_log(
                     JSON.stringify(arguments)
                 );
+
+                return false;
             };
 
             const AJAX_LOADER_URL = ${ JSON.stringify( '' + opts.getResourceUri('img/ajax-loader.gif') ) };

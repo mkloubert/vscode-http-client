@@ -152,19 +152,91 @@ function vschc_create_response_content(responseData) {
     if (!responseData) {
         return;
     }
-
+    
     const CARD = jQuery('<div class="vschc-response-card-entry" />');
     const CARD_BODY = CARD;
 
     const CARD_BUTTONS = [];
+    const INSERT_BUTTONS = () => {
+        const DELETE_CARD_BTN = jQuery('<a class="btn btn-sm btn-danger align-middle vschc-remove-response-btn float-right" title="Close">' + 
+                                       '<i class="fa fa-times" aria-hidden="true"></i>' + 
+                                       '</a>');
+        DELETE_CARD_BTN.on('click', () => {
+            CARD.remove();
 
+            if (jQuery('.vschc-response-card-entry').length < 1) {
+                vschc_reset_response();
+            }
+        });
+        CARD_BUTTONS.push( DELETE_CARD_BTN );
+
+        const BUTTON_LIST = jQuery('<div class="vschc-response-buttons" />');
+
+        for (const CB of CARD_BUTTONS) {
+            CB.appendTo( BUTTON_LIST );
+        }
+
+        BUTTON_LIST.appendTo( CARD_BODY );
+
+        CARD_BODY.append( '<div class="clearfix" />' );            
+    };
+    
     if (!vschc_is_empty_str( responseData.error )) {
-        const ALERT = jQuery('<div class="alert alert-danger" role="alert" />');
-        ALERT.text( vschc_to_string(RESPONSE_DATA.error) );
+        INSERT_BUTTONS();
 
-        ALERT.appendTo( CARD_BODY );
+        const ALERT = jQuery('<div class="alert alert-danger" role="alert" />');
+        ALERT.text( vschc_to_string(responseData.error) );        
+
+        ALERT.appendTo( CARD_BODY );        
     } else {
         const RESPONSE = responseData.response;
+
+        let contentDisplayer = false;
+        let suggestedExtension = RESPONSE.suggestedExtension;
+
+        // card buttons
+        {
+            if (!vschc_is_empty(RESPONSE.body)) {
+                const SAVE_BTN = jQuery('<a class="btn btn-sm btn-primary vschc-save-response-btn" title="Save Content">' + 
+                                        '<i class="fa fa-floppy-o" aria-hidden="true"></i>' + 
+                                        '</a>');
+                SAVE_BTN.on('click', function() {
+                    vscode.postMessage({
+                        command: 'saveContent',
+                        data: {
+                            data: RESPONSE.body,
+                            suggestedExtension: suggestedExtension,
+                        }
+                    });
+                });
+
+                CARD_BUTTONS.push( SAVE_BTN );
+            }
+
+            const SAVE_RAW_RESP_BTN = jQuery('<a class="btn btn-sm btn-secondary vschc-save-raw-response-btn" title="Save Raw">' + 
+                                             '<i class="fa fa-file-text" aria-hidden="true"></i>' + 
+                                             '</a>');
+            SAVE_RAW_RESP_BTN.on('click', () => {
+                vscode.postMessage({
+                    command: 'saveRawResponse',
+                    data: RESPONSE
+                });
+            });
+            CARD_BUTTONS.push( SAVE_RAW_RESP_BTN );
+
+            const OPEN_IN_EDITOR_BTN = jQuery('<a class="btn btn-sm btn-dark vschc-save-open-response-btn" title="Open In Editor">' + 
+                                              '<i class="fa fa-window-maximize" aria-hidden="true"></i>' + 
+                                              '</a>');
+            OPEN_IN_EDITOR_BTN.on('click', () => {
+                vscode.postMessage({
+                    command: 'openReponseInEditor',
+                    data: RESPONSE
+                });
+            });
+            CARD_BUTTONS.push( OPEN_IN_EDITOR_BTN );
+        }
+
+        INSERT_BUTTONS();
 
         let http = `HTTP/${ RESPONSE.httpVersion } ${ RESPONSE.code } ${ RESPONSE.status }\r\n`;
 
@@ -183,9 +255,6 @@ function vschc_create_response_content(responseData) {
             pre.appendTo( CARD_BODY );
             hljs.highlightBlock( CODE[0] );
         };
-        
-        let contentDisplayer = false;
-        let suggestedExtension = RESPONSE.suggestedExtension;
 
         if (RESPONSE.headers) {
             const MIME = vschc_get_content_type(RESPONSE.headers);
@@ -309,50 +378,10 @@ function vschc_create_response_content(responseData) {
         
         REFRESH_HTTP();
 
-        if (RESPONSE.body && RESPONSE.body.length > 0) {
+        if (!vschc_is_empty(RESPONSE.body)) {
             if (contentDisplayer) {
                 contentDisplayer();
             }
-
-            CARD_BODY.append( '<div class="clearfix" />' );
-
-            const SAVE_BTN = jQuery('<a class="btn btn-primary vschc-save-response-btn">' + 
-                                    '<i class="fa fa-floppy-o" aria-hidden="true"></i>' + 
-                                    '<span>Save Content</span>' + 
-                                    '</a>');
-            SAVE_BTN.on('click', function() {
-                vscode.postMessage({
-                    command: 'saveContent',
-                    data: {
-                        data: RESPONSE.body,
-                        suggestedExtension: suggestedExtension,
-                    }
-                });
-            });
-
-            CARD_BUTTONS.push( SAVE_BTN );
-        }
-
-        const SAVE_RAW_RESP_BTN = jQuery('<a class="btn btn-dark vschc-save-raw-response-btn">' + 
-                                         '<i class="fa fa-file-text" aria-hidden="true"></i>' + 
-                                         '<span>Save Raw</span>' + 
-                                         '</a>');
-        SAVE_RAW_RESP_BTN.on('click', () => {
-            vscode.postMessage({
-                command: 'saveRawResponse',
-                data: RESPONSE
-            });
-        });
-        CARD_BUTTONS.push( SAVE_RAW_RESP_BTN );
-
-        if (CARD_BUTTONS.length > 0) {
-            const BUTTON_LIST = jQuery('<div class="vschc-response-buttons" />');
-
-            for (const CB of CARD_BUTTONS) {
-                CB.appendTo( BUTTON_LIST );
-            }
-
-            BUTTON_LIST.appendTo( CARD_BODY );
         }
     }
 

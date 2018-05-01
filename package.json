@@ -2,7 +2,7 @@
     "name": "vscode-http-client",
     "displayName": "HTTP Client",
     "description": "Simple way to do HTTP requests.",
-    "version": "0.12.0",
+    "version": "0.13.0",
     "publisher": "mkloubert",
     "engines": {
         "vscode": "^1.23.0"
@@ -25,23 +25,23 @@
     "contributes": {
         "commands": [
             {
+                "command": "extension.http.client.newRequestScript",
+                "title": "Create new script ...",
+                "category": "HTTP Client"
+            },
+            {
                 "command": "extension.http.client.newRequest",
                 "title": "New HTTP request ...",
                 "category": "HTTP Client"
             },
             {
                 "command": "extension.http.client.newRequestForEditor",
-                "title": "New HTTP request for current editor...",
+                "title": "Send editor content as HTTP request ...",
                 "category": "HTTP Client"
             },
             {
                 "command": "extension.http.client.newRequestFromFile",
-                "title": "New HTTP request from file ...",
-                "category": "HTTP Client"
-            },
-            {
-                "command": "extension.http.client.newRequestScript",
-                "title": "New script ...",
+                "title": "Send file as HTTP request ...",
                 "category": "HTTP Client"
             }
         ],

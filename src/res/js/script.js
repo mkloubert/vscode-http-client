@@ -7,6 +7,10 @@ function vschc_as_array(val) {
     return val;
 }
 
+function vschc_is_empty(val) {
+    return !val || !val.length;
+}
+
 function vschc_is_empty_str(val) {
     return '' === vschc_normalize_str(val);
 }

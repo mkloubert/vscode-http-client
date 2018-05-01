@@ -35,11 +35,18 @@
 }
 
 #vschc-response-card .vschc-response-buttons {
-    margin-top: 16px;
+    display: block;
+    margin: 16px 0;
 }
 
 #vschc-response-card .vschc-response-buttons .btn {
+    margin-left: 0px;
+    margin-right: 8px;
+}
+
+#vschc-response-card .vschc-response-buttons .btn.float-right {
     margin-left: 8px;
+    margin-right: 0px;
 }
 
 #vschc-body-file-content-to-display {
@@ -55,8 +62,7 @@
 }
 
 #vschc-send-request-col .btn .fa,
-#vschc-btn-from-file .fa,
-#vschc-response-card .vschc-response-buttons .btn .fa {
+#vschc-btn-from-file .fa, {
     margin-right: 8px;
 }
 

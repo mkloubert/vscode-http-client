@@ -27,6 +27,26 @@ import * as vscode_helpers from 'vscode-helpers';
 
 
 /**
+ * Reads binary content as Base64 string.
+ *
+ * @return {PromiseLike<string>} The promise with the data (if available).
+ */
+export type Base64Reader = () => PromiseLike<string>;
+
+/**
+ * Result value for getter / setter method of a HTTP client.
+ */
+export type HTTPClientValue<TValue> = TValue | symbol | HTTPClient;
+
+/**
+ * A listener for an event, that is invoked after a request has been send by a HTTP client.
+ *
+ * @param {any} err The error (if occurred).
+ * @param {SendHTTPRequestResult} [result] The result.
+ */
+export type OnDidSendListener = (err: any, result?: SendHTTPRequestResult) => void | PromiseLike<void>;
+
+/**
  * Result of a 'HTTPClient.send()' call.
  */
 export interface SendHTTPRequestResult {
@@ -38,6 +58,10 @@ export interface SendHTTPRequestResult {
      * The underlying request options.
      */
     options: HTTP.RequestOptions;
+    /**
+     * Reads the body as Base64 string.
+     */
+    readRequestBody: Base64Reader;
     /**
      * The underlying request context.
      */
@@ -52,24 +76,18 @@ export interface SendHTTPRequestResult {
     url: URL.Url;
 }
 
-/**
- * Result value for getter / setter method of a HTTP client.
- */
-export type HTTPClientValue<TValue> = TValue | symbol | HTTPClient;
-
-export type OnDidSendListener = (err: any, result?: SendHTTPRequestResult) => void | PromiseLike<void>;
-
 
 /**
  * A HTTP client.
  */
 export class HTTPClient {
-    private _body: any = vschc.IS_UNSET;
+    private _body: any;
     private _headers: any;
-    private _method: any = vschc.IS_UNSET;
+    private _method: any;
     private _onDidSend: OnDidSendListener[];
     private _query: any;
-    private _url: any = vschc.IS_UNSET;
+    private _timeout: any;
+    private _url: any;
 
     /**
      * Initializes a new instance of that class.
@@ -81,10 +99,9 @@ export class HTTPClient {
         public readonly request: vschc_requests.IHTTPRequest,
         public readonly data: vschc_requests.RequestData,
     ) {
-        this.unsetOnDidSendListeners();
+        this.unsetAll();
 
-        this.unsetHeaders();
-        this.unsetParams();
+        this.unsetOnDidSendListeners();
     }
 
     /**
@@ -98,10 +115,6 @@ export class HTTPClient {
         if (arguments.length > 0) {
             if (_.isSymbol(newValue)) {
                 newValue = vschc.IS_UNSET;
-            } else if (!_.isNil(newValue)) {
-                if (!Buffer.isBuffer(newValue)) {
-                    newValue = new Buffer( vscode_helpers.toStringSafe(newValue), 'binary' );
-                }
             }
 
             this._body = newValue;
@@ -213,6 +226,31 @@ export class HTTPClient {
     }
 
     /**
+     * Gets or sets the custom timeout.
+     *
+     * @param {any} [newValue] The new value.
+     *
+     * @return {HTTPClientValue<number>}
+     */
+    public timeout(newValue?: any): HTTPClientValue<number> {
+        if (arguments.length < 1) {
+            return this._timeout;
+        }
+
+        if (_.isSymbol(newValue)) {
+            newValue = vschc.IS_UNSET;
+        } else {
+            newValue = parseInt( vscode_helpers.toStringSafe(newValue).trim() );
+            if (isNaN(newValue)) {
+                newValue = undefined;
+            }
+        }
+
+        this._timeout = newValue;
+        return this;
+    }
+
+    /**
      * Sends the request based on the current data.
      */
     public send() {
@@ -255,20 +293,21 @@ export class HTTPClient {
 
                 let newRequest: HTTP.ClientRequest;
                 const OPTS: HTTP.RequestOptions = {
+                    auth: REQUEST_URL.auth,
                     headers: {},
                     hostname: vscode_helpers.toStringSafe(REQUEST_URL.hostname),
                     method: ME._method,
                     path: REQUEST_URL.pathname,
+                    timeout: ME._timeout,
                 };
 
-                if (_.isSymbol(OPTS.method)) {
-                    OPTS.method = vscode_helpers.toStringSafe(DATA.method);  // no custom method
-                }
+                let bodyReader: Base64Reader;
 
                 const CALLBACK = (resp: HTTP.ClientResponse) => {
                     COMPLETED(null, {
                         data: DATA,
                         options: OPTS,
+                        readRequestBody: bodyReader,
                         request: newRequest,
                         response: resp,
                         url: REQUEST_URL,
@@ -276,6 +315,14 @@ export class HTTPClient {
                         reject(err);
                     });
                 };
+
+                if (_.isSymbol(OPTS.method)) {
+                    OPTS.method = vscode_helpers.toStringSafe(DATA.method);  // no custom method
+                }
+
+                if (_.isSymbol(OPTS.timeout)) {
+                    OPTS.timeout = 10000;  // no custom timeout
+                }
 
                 const APPLY_HEADERS = (headersToApply: any) => {
                     if (headersToApply) {
@@ -367,10 +414,25 @@ export class HTTPClient {
                         }
                     }
                 }
+                body = await vscode_helpers.asBuffer( body );
 
                 if (body && body.length > 0) {
                     newRequest.write( body );
                 }
+
+                bodyReader = async () => {
+                    if (body) {
+                        return body.toString('base64');
+                    }
+                };
+
+                newRequest.once('error', (err) => {
+                    if (err) {
+                        COMPLETED(err).then(() => {}, (e) => {
+                            reject(e);
+                        });
+                    }
+                });
 
                 newRequest.end();
             } catch (e) {
@@ -379,6 +441,22 @@ export class HTTPClient {
                 });
             }
         });
+    }
+
+    /**
+     * Unsets all custom values.
+     *
+     * @return this
+     */
+    public unsetAll() {
+        this.unsetBody();
+        this.unsetHeaders();
+        this.unsetMethod();
+        this.unsetParams();
+        this.unsetTimeout();
+        this.unsetUrl();
+
+        return this;
     }
 
     /**
@@ -432,6 +510,17 @@ export class HTTPClient {
      */
     public unsetParams() {
         this._query = {};
+
+        return this;
+    }
+
+    /**
+     * Unsets the custom timeout.
+     *
+     * @return this
+     */
+    public unsetTimeout() {
+        this._timeout = vschc.IS_UNSET;
 
         return this;
     }
