@@ -617,6 +617,10 @@ export class HTTPRequest extends HTTPRequestBase {
                 await this.openReponseInEditor(msg.data);
                 break;
 
+            case 'openRequestInEditor':
+                await this.openRequestInEditor(msg.data);
+                break;
+
             case 'resetAllHeaders':
                 await this.resetAllHeaders();
                 break;
@@ -791,6 +795,41 @@ export class HTTPRequest extends HTTPRequestBase {
     private async openReponseInEditor(response: SendRequestResponse) {
         const EDITOR = await vscode.workspace.openTextDocument({
             content: this.createHTTPFromResponse(response).toString('ascii'),
+            language: 'http',
+        });
+
+        await vscode.window.showTextDocument( EDITOR );
+    }
+
+    private async openRequestInEditor(response: SendRequestResponse) {
+        const REQUEST = response.request;
+        if (!REQUEST) {
+            return;
+        }
+
+        let data: Buffer;
+        {
+            let http = `${ REQUEST.method } ${ REQUEST.url }\r\n`;
+
+            if (REQUEST.headers) {
+                for (const H in REQUEST.headers) {
+                    http += `${H}: ${ REQUEST.headers[H] }\r\n`;
+                }
+            }
+
+            http += `\r\n`;
+
+            data = new Buffer(http, 'ascii');
+            if (!vscode_helpers.isEmptyString(REQUEST.body)) {
+                data = Buffer.concat([
+                    data,
+                    new Buffer(REQUEST.body, 'base64'),
+                ]);
+            }
+        }
+
+        const EDITOR = await vscode.workspace.openTextDocument({
+            content: data.toString('ascii'),
             language: 'http',
         });
 

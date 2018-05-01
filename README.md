@@ -13,6 +13,7 @@ Simple way to do [HTTP requests](https://en.wikipedia.org/wiki/Hypertext_Transfe
 
 1. [Install](#install-)
 2. [How to use](#how-to-use-)
+   * [Settings](#settings-)
    * [How to execute](#how-to-execute-)
 3. [Syntaxes](#syntaxes-)
 4. [Support and contribute](#support-and-contribute-)
@@ -31,6 +32,24 @@ Or search for things like `vscode-http-client` in your editor.
 
 ## How to use [[&uarr;](#table-of-contents)]
 
+### Settings [[&uarr;](#how-to-use-)]
+
+Open (or create) your `settings.json` in your `.vscode` subfolder of your workspace or edit the global settings (`File >> Preferences >> Settings`).
+
+Add a `http.client` section:
+
+```json
+{
+    "http.client": {
+    }
+}
+```
+
+| Name | Description |
+| ---- | --------- |
+| `open` | An array of one or more paths to `.http-request` files, which should be opened on startup. |
+| `openNewOnStartup` | `(true)`, if a new tab with an empty request should be opened on startup. Default: `(false)` |
+
 ### How to execute [[&uarr;](#how-to-use-)]
 
 Press `F1` and enter one of the following commands:
@@ -41,6 +60,8 @@ Press `F1` and enter one of the following commands:
 | `HTTP Client: New HTTP request ...` | Opens a new HTTP request form. | `extension.http.client.newRequest` |
 | `HTTP Client: Send editor content as HTTP request ...` | Uses the content of a visible editor as body for a HTTP request. | `extension.http.client.newRequestForEditor` |
 | `HTTP Client: Send file as HTTP request ...` | Uses a (local) file as body for a HTTP request. | `extension.http.client.newRequestFromFile` |
+
+There are currently no predefined key bindings for these commands, but you can setup them [by your own](https://code.visualstudio.com/docs/getstarted/keybindings).
 
 ## Syntaxes [[&uarr;](#table-of-contents)]
 

@@ -148,7 +148,7 @@ function vschc_body_content() {
     return content;
 }
 
-function vschc_create_response_content(responseData) {
+function vschc_create_response_content(responseData, whenClosed) {
     if (!responseData) {
         return;
     }
@@ -158,17 +158,21 @@ function vschc_create_response_content(responseData) {
 
     const CARD_BUTTONS = [];
     const INSERT_BUTTONS = () => {
-        const DELETE_CARD_BTN = jQuery('<a class="btn btn-sm btn-danger align-middle vschc-remove-response-btn float-right" title="Close">' + 
-                                       '<i class="fa fa-times" aria-hidden="true"></i>' + 
-                                       '</a>');
-        DELETE_CARD_BTN.on('click', () => {
+        const CLOSE_CARD_BTN = jQuery('<a class="btn btn-sm btn-danger align-middle vschc-remove-response-btn float-right" title="Close">' + 
+                                      '<i class="fa fa-times" aria-hidden="true"></i>' + 
+                                      '</a>');
+        CLOSE_CARD_BTN.on('click', () => {
             CARD.remove();
+
+            if (whenClosed) {
+                whenClosed();
+            }
 
             if (jQuery('.vschc-response-card-entry').length < 1) {
                 vschc_reset_response();
             }
         });
-        CARD_BUTTONS.push( DELETE_CARD_BTN );
+        CARD_BUTTONS.push( CLOSE_CARD_BTN );
 
         const BUTTON_LIST = jQuery('<div class="vschc-response-buttons" />');
 
@@ -224,16 +228,27 @@ function vschc_create_response_content(responseData) {
             });
             CARD_BUTTONS.push( SAVE_RAW_RESP_BTN );
 
-            const OPEN_IN_EDITOR_BTN = jQuery('<a class="btn btn-sm btn-dark vschc-save-open-response-btn" title="Open In Editor">' + 
-                                              '<i class="fa fa-window-maximize" aria-hidden="true"></i>' + 
-                                              '</a>');
-            OPEN_IN_EDITOR_BTN.on('click', () => {
+            const OPEN_RESPONSE_IN_EDITOR_BTN = jQuery('<a class="btn btn-sm btn-dark vschc-open-response-btn" title="Open Response In Editor">' + 
+                                                       '<i class="fa fa-arrow-down" aria-hidden="true"></i>' + 
+                                                       '</a>');
+            OPEN_RESPONSE_IN_EDITOR_BTN.on('click', () => {
                 vscode.postMessage({
                     command: 'openReponseInEditor',
                     data: RESPONSE
                 });
             });
-            CARD_BUTTONS.push( OPEN_IN_EDITOR_BTN );
+            CARD_BUTTONS.push( OPEN_RESPONSE_IN_EDITOR_BTN );
+
+            const OPEN_REQUEST_IN_EDITOR_BTN = jQuery('<a class="btn btn-sm btn-dark vschc-open-request-btn" title="Open Request In Editor">' + 
+                                                      '<i class="fa fa-arrow-up" aria-hidden="true"></i>' + 
+                                                      '</a>');
+            OPEN_REQUEST_IN_EDITOR_BTN.on('click', () => {
+                vscode.postMessage({
+                    command: 'openRequestInEditor',
+                    data: RESPONSE
+                });
+            });
+            CARD_BUTTONS.push( OPEN_REQUEST_IN_EDITOR_BTN );
         }
 
         INSERT_BUTTONS();
@@ -783,7 +798,14 @@ jQuery(() => {
                     const CARD      = jQuery('#vschc-response-card');
                     const CARD_BODY = CARD.find('.card-body');
 
-                    const NEW_RESPONSE_CARD = vschc_create_response_content( RESPONSE_DATA );
+                    let onCardClosed;
+
+                    const NEW_RESPONSE_CARD = vschc_create_response_content(RESPONSE_DATA, () => {
+                        if (onCardClosed) {
+                            onCardClosed();
+                        }
+                    });
+
                     if (NEW_RESPONSE_CARD) {
                         let tab = CARD_BODY.find('#vschc-response-tab');
                         if (tab.length < 1) {
@@ -823,6 +845,27 @@ jQuery(() => {
                         tab.find('.tab-content').prepend( NEW_TAB_PANE );
 
                         NEW_NAV_ITEM.find('a').tab('show');
+
+                        onCardClosed = () => {
+                            const CURRENT_INDEX = NEW_NAV_ITEM.index();
+
+                            NEW_TAB_PANE.remove();
+                            NEW_NAV_ITEM.remove();
+
+                            let newIndex = CURRENT_INDEX;
+                            while (newIndex > 0 && newIndex >= tab.find('.vschc-response-tab-item').length) {
+                                --newIndex;
+                            }
+
+                            const REMAING_TABS = tab.find('.vschc-response-tab-item');
+                            if (REMAING_TABS.length > 0) {
+                                const ITEM_TO_SHOW = REMAING_TABS[newIndex];
+                                
+                                if (ITEM_TO_SHOW) {
+                                    jQuery(ITEM_TO_SHOW).find('a').tab('show');
+                                }
+                            }
+                        };
                     }                    
 
                     vschc_update_response_button_states(true);

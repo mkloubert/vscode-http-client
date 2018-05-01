@@ -531,7 +531,7 @@ export class HTTPClient {
      * @return this
      */
     public unsetUrl() {
-        this._query = {};
+        this._url = vschc.IS_UNSET;
 
         return this;
     }

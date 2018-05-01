@@ -39,6 +39,11 @@
     margin: 16px 0;
 }
 
+#vschc-response-card .alert {
+    clear: both;
+    margin-top: 8px !important;
+}
+
 #vschc-response-card .vschc-response-buttons .btn {
     margin-left: 0px;
     margin-right: 8px;
