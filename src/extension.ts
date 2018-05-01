@@ -481,7 +481,7 @@ async function getDefaultUriForDialogs() {
                     // .vscode sub folder
                     Path.join(ACTIVE_WORKSPACE.folder.uri.fsPath, '.vscode'),
                     // workspace folder
-                    Path.resolve(ACTIVE_WORKSPACE.folder.uri.fsPath),
+                    ACTIVE_WORKSPACE.folder.uri.fsPath,
                 ];
 
                 for (const D of DIRS) {

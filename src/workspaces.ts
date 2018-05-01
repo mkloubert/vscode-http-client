@@ -94,24 +94,43 @@ export class Workspace extends vscode_helpers.WorkspaceBase {
      */
     public executeOpenRequestsOnStartup = false;
 
+    /**
+     * Tries to return aa full path of an existing element.
+     *
+     * @param {string} p The path of the element.
+     *
+     * @return {string|false} The full path or (false) if not found.
+     */
     public getExistingPath(p: string) {
-        p = vscode_helpers.toStringSafe(p);
+        let pathToReturn: string | false = vscode_helpers.toStringSafe(p);
 
         if (!Path.isAbsolute(p)) {
-            const VSCODE_DIR = Path.join(this.rootPath, '.vscode');
-            const EXT_DIR = vschc.getUsersExtensionDir();
+            pathToReturn = false;
 
-            for (const DIR of [VSCODE_DIR, EXT_DIR]) {
-                const PATH_TO_CHECK = Path.join( DIR, p );
+            const ROOT_DIRS = [
+                Path.join(this.rootPath),
+                vschc.getUsersExtensionDir(),
+            ];
+
+            for (const DIR of ROOT_DIRS) {
+                const PATH_TO_CHECK = Path.join(DIR, p);
+
                 if (FSExtra.existsSync(PATH_TO_CHECK)) {
-                    p = PATH_TO_CHECK;
+                    pathToReturn = PATH_TO_CHECK;
                     break;
                 }
             }
+        } else {
+            if (!FSExtra.existsSync(pathToReturn)) {
+                pathToReturn = false;
+            }
         }
 
-        return FSExtra.existsSync(p) ? Path.resolve(p)
-                                     : false;
+        if (false !== pathToReturn) {
+            pathToReturn = Path.resolve(pathToReturn);
+        }
+
+        return pathToReturn;
     }
 
     /**
