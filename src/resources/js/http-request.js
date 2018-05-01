@@ -359,6 +359,26 @@ function vschc_create_response_content(responseData) {
     return CARD;
 }
 
+function vschc_execute_script() {
+    const BTN = jQuery('#vschc-execute-script');
+
+    const URL_FIELD = jQuery('#vschc-input-url');
+
+    if (vschc_is_empty_str( URL_FIELD.val() )) {
+        URL_FIELD.focus();
+    } else {
+        BTN.addClass('disabled');
+        BTN.find('span').text('Executing ...');
+
+        vschc_update_response_button_states(false);
+
+        vscode.postMessage({
+            command: 'executeScript',
+            data: vschc_prepare_request()
+        });
+    }
+}
+
 function vschc_get_headers() {
     const HEADERS = {};
 
@@ -452,13 +472,6 @@ function vschc_reset_response() {
     jQuery('#vschc-response-card .card-body').text( 'No request started yet.' );
 }
 
-function vschc_restore_send_request_button() {
-    const BTN = jQuery('#vschc-send-request');
-
-    BTN.find('span').text('Send Request');
-    BTN.removeClass('disabled');
-}
-
 function vschc_send_request() {
     const BTN = jQuery('#vschc-send-request');
 
@@ -470,7 +483,7 @@ function vschc_send_request() {
         BTN.addClass('disabled');
         BTN.find('span').text('Sending ...');
 
-        jQuery('#vschc-reset-responses-btn').hide();
+        vschc_update_response_button_states(false);
 
         vscode.postMessage({
             command: 'sendRequest',
@@ -575,6 +588,27 @@ function vschc_update_header_area() {
     }
 }
 
+function vschc_update_response_button_states(areEnabled) {
+    const EXEC_SCRIPT_BTN = jQuery('#vschc-execute-script');
+    const RESET_REQUEST_BTN = jQuery('#vschc-reset-responses-btn');
+    const SEND_REQUEST_BTN = jQuery('#vschc-send-request');
+    
+    EXEC_SCRIPT_BTN.removeClass('disabled');
+    SEND_REQUEST_BTN.removeClass('disabled');
+
+    if (areEnabled) {
+        RESET_REQUEST_BTN.show();
+        
+        EXEC_SCRIPT_BTN.find('span').text('Execute Script');
+        SEND_REQUEST_BTN.find('span').text('Send Request');
+    } else {
+        RESET_REQUEST_BTN.hide();
+
+        EXEC_SCRIPT_BTN.addClass('disabled');
+        SEND_REQUEST_BTN.addClass('disabled');
+    }
+}
+
 jQuery(() => {
     window.addEventListener('message', (e) => {
         if (!e) {
@@ -587,6 +621,12 @@ jQuery(() => {
         }
 
         switch (MSG.command) {
+            case 'executeScriptCompleted':
+                {
+                    vschc_update_response_button_states(true);
+                }
+                break;
+
             case 'findInitialControlToFocus':
                 {
                     const URL_FIELD = jQuery('#vschc-input-url');
@@ -754,11 +794,9 @@ jQuery(() => {
                         tab.find('.tab-content').prepend( NEW_TAB_PANE );
 
                         NEW_NAV_ITEM.find('a').tab('show');
-                    }
+                    }                    
 
-                    jQuery('#vschc-reset-responses-btn').show();
-
-                    vschc_restore_send_request_button();
+                    vschc_update_response_button_states(true);
 
                     const SEND_BTN = jQuery('#vschc-send-request');
                     jQuery(document).scrollTop(
@@ -826,6 +864,10 @@ jQuery(() => {
         vscode.postMessage({
             command: 'unsetBodyFromFile'            
         });
+    });
+
+    jQuery('#vschc-execute-script').on('click', function() {
+        vschc_execute_script();
     });
 
     jQuery('#vschc-send-request').on('click', function() {

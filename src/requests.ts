@@ -26,9 +26,17 @@ import * as URL from 'url';
 import * as UUID from 'uuid';
 import * as vschc from './extension';
 import * as vschc_html from './html';
+import * as vschc_http from './http';
+import * as vschc_scripts from './scripts';
 import * as vscode from 'vscode';
 import * as vscode_helpers from 'vscode-helpers';
 
+
+interface ExecuteScriptResult {
+    error?: any;
+    response?: {
+    };
+}
 
 /**
  * A HTTP request.
@@ -415,6 +423,48 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
  * A HTTP request.
  */
 export class HTTPRequest extends HTTPRequestBase {
+    private async executeScript(request: RequestData) {
+        const ME = this;
+
+        let result: ExecuteScriptResult;
+
+        try {
+            let editor: vscode.TextEditor;
+
+            const VISIBLE_EDITORS = vscode_helpers.asArray( vscode.window.visibleTextEditors );
+            if (VISIBLE_EDITORS.length > 0) {
+                editor = VISIBLE_EDITORS[0];
+            }
+
+            if (editor) {
+                await vscode.window.withProgress({
+                    cancellable: true,
+                    location: vscode.ProgressLocation.Notification,
+                    title: 'Executing HTTP Script ...'
+                }, async (progress, cancelToken) => {
+                    await vschc_scripts.executeScript({
+                        cancelToken: cancelToken,
+                        code: editor.document.getText(),
+                        handler: ME,
+                        onDidSend: async (err: any, result?: vschc_http.SendHTTPRequestResult) => {
+                            await ME.sendRequestCompleted(err, result);
+                        },
+                        progress: progress,
+                        request: request,
+                    });
+                });
+            } else {
+                vscode.window.showWarningMessage('No open (script) editor found!');
+            }
+        } catch (e) {
+            result = {
+                error: vscode_helpers.toStringSafe(e),
+            };
+        } finally {
+            await ME.postMessage('executeScriptCompleted', result);
+        }
+    }
+
     private async exportRequest(request: RequestData) {
         if (request.body) {
             delete request.body.mime;
@@ -477,6 +527,10 @@ export class HTTPRequest extends HTTPRequestBase {
      */
     protected async onDidReceiveMessage(msg: WebViewMessage) {
         switch (msg.command) {
+            case 'executeScript':
+                await this.executeScript( msg.data );
+                break;
+
             case 'exportRequest':
                 await this.exportRequest( msg.data );
                 break;
@@ -556,7 +610,7 @@ export class HTTPRequest extends HTTPRequestBase {
                 break;
 
             case 'sendRequest':
-                this.sendRequest(msg.data);
+                await this.sendRequest(msg.data);
                 break;
 
             case 'titleUpdated':
@@ -667,6 +721,11 @@ export class HTTPRequest extends HTTPRequestBase {
 
     <div class="row">
         <div class="col-sm-12 text-right" id="vschc-send-request-col">
+            <a class="btn btn-dark" id="vschc-execute-script" role="button">
+                <i class="fa fa-cogs" aria-hidden="true"></i>
+                <span>Execute Script</span>
+            </a>
+
             <a class="btn btn-success" id="vschc-send-request" role="button">
                 <i class="fa fa-paper-plane" aria-hidden="true"></i>
                 <span>Send Request</span>
@@ -770,127 +829,48 @@ export class HTTPRequest extends HTTPRequestBase {
         });
     }
 
-    private sendRequest(request: RequestData) {
-        const ME = this;
+    private async sendRequest(request: RequestData) {
+        const HTTP_CLIENT = new vschc_http.HTTPClient(this, request);
 
-        const COMPLETED = async (err: any, resp?: HTTP.ClientResponse) => {
-            let r: SendRequestResponse;
-            if (!err) {
-                const BODY = await vscode_helpers.readAll(resp);
+        let err: any;
+        let result: vschc_http.SendHTTPRequestResult;
+        try {
+            result = await HTTP_CLIENT.send();
+        } catch (e) {
+            err = e;
+        }
 
-                r = {
-                    body: (BODY && BODY.length > 0) ? BODY.toString('base64') : null,
-                    code: resp.statusCode,
-                    headers: {},
-                    httpVersion: resp.httpVersion,
-                    suggestedExtension: false,
-                    status: resp.statusMessage,
-                };
+        await this.sendRequestCompleted(err, result);
+    }
 
-                if (r.headers) {
-                    for (const H in resp.headers) {
-                        r.headers[ NormalizeHeaderCase(H) ] = resp.headers[H];
-                    }
+    private async sendRequestCompleted(err: any, result: vschc_http.SendHTTPRequestResult) {
+        let r: SendRequestResponse;
+        if (!err) {
+            const RESP = result.response;
+            const BODY = await vscode_helpers.readAll(RESP);
 
-                    r.suggestedExtension = MimeTypes.extension( resp.headers['content-type'] );
+            r = {
+                body: (BODY && BODY.length > 0) ? BODY.toString('base64') : null,
+                code: RESP.statusCode,
+                headers: {},
+                httpVersion: RESP.httpVersion,
+                suggestedExtension: false,
+                status: RESP.statusMessage,
+            };
+
+            if (r.headers) {
+                for (const H in RESP.headers) {
+                    r.headers[ NormalizeHeaderCase(H) ] = RESP.headers[H];
                 }
-            }
 
-            try {
-                await ME.postMessage('sendRequestCompleted', {
-                    error: vscode_helpers.toStringSafe(err),
-                    response: r,
-                });
-            } catch (e) {
-                ME.showError(e);
-            }
-        };
-
-        let requestUrlValue = vscode_helpers.toStringSafe( request.url );
-        if (!requestUrlValue.toLowerCase().trim().startsWith('http')) {
-            requestUrlValue = 'http://' + requestUrlValue;
-        }
-
-        const REQUEST_URL = URL.parse(requestUrlValue);
-
-        let createRequest: (() => HTTP.ClientRequest) | false = false;
-
-        const CALLBACK = (resp: HTTP.ClientResponse) => {
-            COMPLETED(null, resp).then(() => {
-            }, (err) => {
-                ME.showError(err);
-            });
-        };
-
-        const PROTOCOL = vscode_helpers.normalizeString(REQUEST_URL.protocol);
-
-        const OPTS: HTTP.RequestOptions = {
-            headers: {},
-            hostname: vscode_helpers.toStringSafe(REQUEST_URL.hostname),
-            method: vscode_helpers.toStringSafe(request.method).toUpperCase().trim(),
-            path: REQUEST_URL.path,
-        };
-
-        if (request.headers) {
-            for (const H in request.headers) {
-                const NAME = NormalizeHeaderCase(H);
-                if ('' !== NAME) {
-                    OPTS.headers[NAME] = vscode_helpers.toStringSafe( request.headers[H] );
-                }
+                r.suggestedExtension = MimeTypes.extension( RESP.headers['content-type'] );
             }
         }
 
-        if (vscode_helpers.isEmptyString(OPTS.hostname)) {
-            OPTS.hostname = '127.0.0.1';
-        }
-        if (vscode_helpers.isEmptyString(OPTS.method)) {
-            OPTS.method = 'GET';
-        }
-
-        OPTS.port = parseInt( vscode_helpers.normalizeString(REQUEST_URL.port) );
-
-        switch (PROTOCOL) {
-            case 'http:':
-                createRequest = () => {
-                    OPTS.protocol = 'http:';
-                    if (isNaN(<any>OPTS.port)) {
-                        OPTS.port = 80;
-                    }
-
-                    return HTTP.request(OPTS, CALLBACK);
-                };
-                break;
-
-            case 'https:':
-                createRequest = () => {
-                    OPTS.protocol = 'https:';
-                    if (isNaN(<any>OPTS.port)) {
-                        OPTS.port = 443;
-                    }
-
-                    return HTTPs.request(OPTS, CALLBACK);
-                };
-                break;
-        }
-
-        if (false === createRequest) {
-            throw new Error(`Invalid protocol '${ PROTOCOL }'!`);
-        }
-
-        const REQ = createRequest();
-
-        let body: Buffer;
-        if (request.body) {
-            if (false !== request.body.content) {
-                body = new Buffer(vscode_helpers.toStringSafe(request.body.content).trim(), 'base64');
-            }
-        }
-
-        if (body && body.length > 0) {
-            REQ.write( body );
-        }
-
-        REQ.end();
+        await this.postMessage('sendRequestCompleted', {
+            error: vscode_helpers.toStringSafe(err),
+            response: r,
+        });
     }
 
     private async setBodyContentFromFile(opts: SetBodyContentFromFileOptions) {

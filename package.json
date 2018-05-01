@@ -38,6 +38,11 @@
                 "command": "extension.http.client.newRequestFromFile",
                 "title": "New HTTP request from file ...",
                 "category": "HTTP Client"
+            },
+            {
+                "command": "extension.http.client.newRequestScript",
+                "title": "New script ...",
+                "category": "HTTP Client"
             }
         ],
         "configuration": {
@@ -134,6 +139,8 @@
         "@types/lodash": "^4.14.108",
         "@types/mime-types": "^2.1.0",
         "@types/mocha": "^2.2.42",
+        "@types/moment": "^2.13.0",
+        "@types/moment-timezone": "^0.5.4",
         "@types/node": "^7.0.43",
         "@types/uuid": "^3.4.3",
         "tslint": "^5.8.0",
@@ -146,6 +153,8 @@
         "lodash": "^4.17.10",
         "merge-deep": "^3.0.1",
         "mime-types": "^2.1.18",
+        "moment": "^2.22.1",
+        "moment-timezone": "^0.5.16",
         "uuid": "^3.2.1",
         "vscode-helpers": "^1.10.0"
     }

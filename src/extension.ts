@@ -43,8 +43,13 @@ export interface SaveDialogOptions extends vscode.SaveDialogOptions {
 
 
 let extension: vscode.ExtensionContext;
+/**
+ * Indicates that something is unset.
+ */
+export const IS_UNSET = Symbol('IS_UNSET');
 let isDeactivating = false;
 let workspaceWatcher: vscode_helpers.WorkspaceWatcherContext<vschc_workspaces.Workspace>;
+
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -238,6 +243,82 @@ export function activate(context: vscode.ExtensionContext) {
                         });
                     }, {
                         openLabel: 'Start request',
+                    });
+                } catch (e) {
+                    showError(e);
+                }
+            }),
+
+            // newRequestScript
+            vscode.commands.registerCommand('extension.http.client.newRequestScript', async () => {
+                try {
+                    let code = `
+// The following modules are supported:
+//
+// $fs      =>   https://github.com/jprichardson/node-fs-extra
+// $h       =>   https://github.com/mkloubert/vscode-helpers
+// $moment  =>   https://github.com/moment/moment
+// $uuid    =>   https://github.com/kelektiv/node-uuid
+// $vs      =>   https://code.visualstudio.com/docs/extensionAPI/vscode-api
+
+const CURRENT_TIME = now();
+const CURRENT_UTC_TIME = utc();
+
+const SESSION_ID = $uuid.v4();
+const USERS = [ 1, 2, 3 ];
+
+for (let i = 0; i < USERS.length; i++) {
+    if (cancel.isCancellationRequested) {
+        break;  // user wants to cancel
+    }
+
+    const USER_ID = USERS[i];
+
+    // update progress
+    progress.report({
+        message: \`Execute request for user \${ i + 1 } (ID \${ USER_ID }) of \${ USERS.length }\`,
+        increment: 1.0 / USERS.length * 100.0
+    });
+
+    const REQUEST = new_request();
+
+    // set custom query / URL parameter(s)
+    REQUEST.param('user', USER_ID)
+           .param('foo', 'bar');
+
+    // set custom header(s)
+    REQUEST.header('X-MyApp-Session', SESSION_ID)
+           .header('X-MyApp-Time', CURRENT_UTC_TIME.format('YYYY-MM-DD HH:mm:ss'));
+
+    // set custom body
+    REQUEST.body(
+        await $fs.readFile(\`/path/to/user/data/user_\${ USER_ID }.json\`)
+    );
+
+    // build and the send request
+    //
+    // httpResult.response  =>  the object with the response data
+    let httpResult;
+    try {
+        httpResult = await REQUEST.send();
+    } catch (e) {
+        // send error
+    }
+
+    // wait about 2.5 seconds
+    await sleep( 2.5 );
+}
+`;
+
+                    const EDITOR = await vscode.workspace.openTextDocument({
+                        content: code,
+                        language: 'javascript',
+                    });
+
+                    const DOC = await vscode.window.showTextDocument(EDITOR);
+
+                    await vschc_requests.startNewRequest({
+                        showOptions: vscode.ViewColumn.Two,
                     });
                 } catch (e) {
                     showError(e);

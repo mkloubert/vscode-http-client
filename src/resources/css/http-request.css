@@ -54,7 +54,7 @@
     cursor: pointer;
 }
 
-#vschc-send-request .fa,
+#vschc-send-request-col .btn .fa,
 #vschc-btn-from-file .fa,
 #vschc-response-card .vschc-response-buttons .btn .fa {
     margin-right: 8px;
@@ -74,4 +74,8 @@
 
 #vschc-response-tab .vschc-response-tab-item a .vschc-buttons .btn .fa {
     margin-right: 0;
+}
+
+#vschc-send-request-col .btn {
+    margin-left: 8px;
 }
