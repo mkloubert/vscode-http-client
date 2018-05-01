@@ -965,6 +965,24 @@ export function removeRequest(request: IHTTPRequest) {
 }
 
 /**
+ * Restores all saved requests.
+ */
+export async function restoreSavedRequests() {
+    // TODO: implement
+}
+
+/**
+ * Saves all open requests.
+ */
+export async function saveOpenRequests() {
+    for (const R of vscode_helpers.asArray(REQUESTS)) {
+        try {
+            // TODO: implement
+        } catch { }
+    }
+}
+
+/**
  * Starts a new request.
  *
  * @param {StartNewRquestOptions} [opts] Custom options.

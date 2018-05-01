@@ -42,17 +42,19 @@ export interface SaveDialogOptions extends vscode.SaveDialogOptions {
 }
 
 
+let activeWorkspace: vschc_workspaces.Workspace;
 let extension: vscode.ExtensionContext;
 /**
  * Indicates that something is unset.
  */
 export const IS_UNSET = Symbol('IS_UNSET');
 let isDeactivating = false;
+const KEY_LAST_KNOWN_DEFAULT_URI = 'vschcLastKnownDefaultUri';
 let workspaceWatcher: vscode_helpers.WorkspaceWatcherContext<vschc_workspaces.Workspace>;
 
 
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     extension = context;
 
     const WF = vscode_helpers.buildWorkflow();
@@ -333,17 +335,43 @@ for (let i = 0; i < USERS.length; i++) {
     WF.next(async () => {
         extension.subscriptions.push(
             workspaceWatcher = vscode_helpers.registerWorkspaceWatcher(context, async (event, folder, workspace?) => {
-                if (event === vscode_helpers.WorkspaceWatcherEvent.Added) {
-                    const NEW_WORKSPACE = new vschc_workspaces.Workspace( folder );
-
-                    await NEW_WORKSPACE.initialize();
-
-                    return NEW_WORKSPACE;
+                try {
+                    switch (event) {
+                        case vscode_helpers.WorkspaceWatcherEvent.Added:
+                            const NEW_WORKSPACE = new vschc_workspaces.Workspace( folder );
+                            {
+                                await NEW_WORKSPACE.initialize();
+                            }
+                            return NEW_WORKSPACE;
+                    }
+                } finally {
+                    await updateActiveWorkspace();
                 }
             })
         );
 
+        (<any>vschc_workspaces).getAllWorkspaces = () => {
+            return vscode_helpers.from( vscode_helpers.asArray(workspaceWatcher.workspaces) ).orderBy(ws => {
+                return ws.folder.index;
+            }).thenBy(ws => {
+                return vscode_helpers.normalizeString(ws.folder.name);
+            }).thenBy(ws => {
+                return vscode_helpers.normalizeString(ws.folder.uri.fsPath);
+            }).toArray();
+        };
+
+        (<any>vschc_workspaces).getActiveWorkspace = () => {
+            const AWS = activeWorkspace;
+            if (AWS && !AWS.isInFinalizeState) {
+                return AWS;
+            }
+
+            return false;
+        };
+
         await workspaceWatcher.reload();
+
+        await updateActiveWorkspace();
     });
 
     // openRequestsOnStartup
@@ -365,6 +393,23 @@ for (let i = 0; i < USERS.length; i++) {
         } catch (e) {
             showError(e);
         }
+    });
+
+    // events
+    WF.next(() => {
+        context.subscriptions.push(
+            vscode.window.onDidChangeActiveTextEditor(() => {
+                updateActiveWorkspace().then(() => {}, (err) => {
+                });
+            }),
+        );
+    });
+
+    // restore saved requests
+    WF.next(async () => {
+        try {
+            await vschc_requests.restoreSavedRequests();
+        } catch {  }
     });
 
     if (!isDeactivating) {
@@ -402,11 +447,77 @@ export async function confirm<TResult = any>(
     }
 }
 
-export function deactivate() {
+export async function deactivate() {
     if (isDeactivating) {
         return;
     }
     isDeactivating = true;
+
+    // save open requests
+    try {
+        await vschc_requests.saveOpenRequests();
+    } catch {  }
+}
+
+async function getDefaultUriForDialogs() {
+    let uri: vscode.Uri;
+
+    const CHECKERS: (() => Promise<void>)[] = [
+        // first check last known
+        async () => {
+            const LAST_KNOWN = vscode_helpers.toStringSafe( extension.workspaceState.get(KEY_LAST_KNOWN_DEFAULT_URI, '') );
+            if (!vscode_helpers.isEmptyString(LAST_KNOWN)) {
+                if (await vscode_helpers.isDirectory(LAST_KNOWN)) {
+                    uri = vscode.Uri.file(LAST_KNOWN);
+                }
+            }
+        },
+
+        // then check active workspace
+        async () => {
+            const ACTIVE_WORKSPACE = vschc_workspaces.getActiveWorkspace();
+            if (ACTIVE_WORKSPACE) {
+                const DIRS = [
+                    // .vscode sub folder
+                    Path.join(ACTIVE_WORKSPACE.folder.uri.fsPath, '.vscode'),
+                    // workspace folder
+                    Path.resolve(ACTIVE_WORKSPACE.folder.uri.fsPath),
+                ];
+
+                for (const D of DIRS) {
+                    try {
+                        if (uri) {
+                            break;
+                        }
+
+                        if (await vscode_helpers.isDirectory(D)) {
+                            uri = vscode.Uri.file(D);
+                        }
+                    } catch { }
+                }
+            }
+        },
+
+        // last, but not least => try home directory
+        async () => {
+            const EXT_DIR = getUsersExtensionDir();
+            if (await vscode_helpers.isDirectory(EXT_DIR)) {
+                uri = vscode.Uri.file(EXT_DIR);
+            }
+        },
+    ];
+
+    for (const CHK of CHECKERS) {
+        if (uri) {
+            break;
+        }
+
+        try {
+            await CHK();
+        } catch { }
+    }
+
+    return uri;
 }
 
 /**
@@ -438,23 +549,32 @@ export async function openFiles<TResult = any>(
         canSelectFiles: true,
         canSelectFolders: false,
         canSelectMany: false,
+        defaultUri: await getDefaultUriForDialogs(),
         openLabel: 'Open',
     };
-
-    try {
-        const EXT_DIR = getUsersExtensionDir();
-        if (await vscode_helpers.isDirectory(EXT_DIR)) {
-            DEFAULT_OPTS.defaultUri = vscode.Uri.file(EXT_DIR);
-        }
-    } catch { }
 
     const OPTS: OpenDialogOptions = MergeDeep(DEFAULT_OPTS, options);
 
     const FILES = await vscode.window.showOpenDialog(OPTS);
     if (FILES && FILES.length > 0) {
-        return Promise.resolve(
-            action(FILES)
-        );
+        const FIRST_FILE = FILES[0];
+        let lastKnownUri = OPTS.defaultUri;
+
+        try {
+            return await Promise.resolve(
+                action(FILES)
+            );
+        } finally {
+            try {
+                if (vscode_helpers.from(FILES).all(f => f.fsPath === FIRST_FILE.fsPath)) {
+                    lastKnownUri = vscode.Uri.file(
+                        Path.dirname(FIRST_FILE.fsPath)
+                    );
+                }
+            } catch { }
+
+            await updateLastKnownDefaultUriForDialogs(lastKnownUri);
+        }
     }
 }
 
@@ -471,23 +591,29 @@ export async function saveFile<TResult = any>(
     options?: SaveDialogOptions
 ): Promise<TResult> {
     const DEFAULT_OPTS: SaveDialogOptions = {
+        defaultUri: await getDefaultUriForDialogs(),
         saveLabel: 'Save',
     };
-
-    try {
-        const EXT_DIR = getUsersExtensionDir();
-        if (await vscode_helpers.isDirectory(EXT_DIR)) {
-            DEFAULT_OPTS.defaultUri = vscode.Uri.file(EXT_DIR);
-        }
-    } catch { }
 
     const OPTS: SaveDialogOptions = MergeDeep(DEFAULT_OPTS, options);
 
     const FILE = await vscode.window.showSaveDialog(OPTS);
     if (FILE) {
-        return Promise.resolve(
-            action(FILE)
-        );
+        let lastKnownUri = OPTS.defaultUri;
+
+        try {
+            return await Promise.resolve(
+                action(FILE)
+            );
+        } finally {
+            try {
+                lastKnownUri = vscode.Uri.file(
+                    Path.dirname(FILE.fsPath)
+                );
+            } catch { }
+
+            await updateLastKnownDefaultUriForDialogs(lastKnownUri);
+        }
     }
 }
 
@@ -502,4 +628,49 @@ export async function showError(err: any) {
             `[ERROR] '${ vscode_helpers.toStringSafe(err) }'`
         );
     }
+}
+
+async function updateActiveWorkspace() {
+    let aws: vschc_workspaces.Workspace;
+
+    try {
+        const ALL_WORKSPACES = vschc_workspaces.getAllWorkspaces();
+        if (ALL_WORKSPACES.length > 0) {
+            if (1 === ALL_WORKSPACES.length) {
+                aws = ALL_WORKSPACES[0];
+            } else {
+                aws = activeWorkspace;
+
+                const ACTIVE_EDITOR = vscode.window.activeTextEditor;
+                if (ACTIVE_EDITOR) {
+                    const DOC = ACTIVE_EDITOR.document;
+                    if (DOC) {
+                        const FILE = DOC.fileName;
+                        if (!vscode_helpers.isEmptyString(FILE)) {
+                            const LAST_MATCHING_WORKSPACE = vscode_helpers.from(ALL_WORKSPACES)
+                                                                          .firstOrDefault(ws => ws.isPathOf(FILE), false);
+                            if (LAST_MATCHING_WORKSPACE) {
+                                aws = LAST_MATCHING_WORKSPACE;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        aws = null;
+    }
+
+    activeWorkspace = aws;
+}
+
+async function updateLastKnownDefaultUriForDialogs(uri: vscode.Uri) {
+    try {
+        if (uri) {
+            try {
+                await extension.workspaceState.update(KEY_LAST_KNOWN_DEFAULT_URI,
+                                                      uri.fsPath);
+            } catch {  }
+        }
+    } catch { }
 }

@@ -82,7 +82,7 @@ function vschc_add_header_row(name, value) {
         });
         VALUE_FIELD.appendTo( NEW_ROW.find('.vschc-value') );
 
-        const REMOVE_BTN = jQuery('<a class="btn btn-sm btn-warning align-middle vschc-remove-btn" title="Remove Header">' + 
+        const REMOVE_BTN = jQuery('<a class="btn btn-sm btn-danger align-middle vschc-remove-btn" title="Remove Header">' + 
                                   '<i class="fa fa-trash" aria-hidden="true"></i>' + 
                                   '</a>');
         REMOVE_BTN.on('click', function() {

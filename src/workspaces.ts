@@ -55,6 +55,19 @@ export type OpenValue = string | OpenEntry;
 
 
 /**
+ * A function that returns the active workspace.
+ */
+export let getActiveWorkspace: () => Workspace;
+
+/**
+ * A function that returns a list of all available workspaces.
+ *
+ * @return {vschc_workspaces.Workspace[]} The available workspaces.
+ */
+export let getAllWorkspaces: () => Workspace[];
+
+
+/**
  * A workspace (handler).
  */
 export class Workspace extends vscode_helpers.WorkspaceBase {
@@ -112,6 +125,30 @@ export class Workspace extends vscode_helpers.WorkspaceBase {
         };
 
         await this.onDidChangeConfiguration();
+    }
+
+    /**
+     * Checks if a path is inside that workspace or not.
+     *
+     * @param {string} p The path to check.
+     *
+     * @return {boolean} Is path of or not.
+     */
+    public isPathOf(p: string): boolean {
+        p = vscode_helpers.toStringSafe(p);
+        if (!Path.isAbsolute(p)) {
+            return true;
+        }
+
+        const FOLDER_URI = vscode.Uri.file(
+            Path.resolve(this.folder.uri.fsPath)
+        );
+        const URI = vscode.Uri.file(
+            Path.resolve(p)
+        );
+
+        return URI.fsPath === FOLDER_URI.fsPath ||
+               URI.fsPath.startsWith(FOLDER_URI.fsPath + Path.sep);
     }
 
     /**
