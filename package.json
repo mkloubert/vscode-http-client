@@ -2,7 +2,7 @@
     "name": "vscode-http-client",
     "displayName": "HTTP Client",
     "description": "Simple way to do HTTP requests.",
-    "version": "0.18.0",
+    "version": "0.19.0",
     "publisher": "mkloubert",
     "engines": {
         "vscode": "^1.23.0"
@@ -141,11 +141,11 @@
         "@types/mocha": "^2.2.42",
         "@types/moment": "^2.13.0",
         "@types/moment-timezone": "^0.5.4",
-        "@types/node": "^7.0.62",
+        "@types/node": "^7.0.63",
         "@types/uuid": "^3.4.3",
         "tslint": "^5.8.0",
         "typescript": "^2.6.1",
-        "vscode": "^1.1.6"
+        "vscode": "^1.1.17"
     },
     "dependencies": {
         "fs-extra": "^5.0.0",
@@ -155,6 +155,7 @@
         "mime-types": "^2.1.18",
         "moment": "^2.22.1",
         "moment-timezone": "^0.5.16",
+        "node-enumerable": "^3.9.0",
         "uuid": "^3.2.1",
         "vscode-helpers": "^1.10.1"
     }

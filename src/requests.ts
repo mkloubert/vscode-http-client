@@ -946,12 +946,12 @@ export class HTTPRequest extends HTTPRequestBase {
     }
 
     private async sendRequestCompleted(err: any, result: vschc_http.SendHTTPRequestResult) {
-        if (!result) {
-            return;
-        }
-
         let r: SendRequestResponse;
-        if (!err) {
+        if (err) {
+            err = vscode_helpers.toStringSafe(err);
+        } else {
+            err = undefined;
+
             const RESP = result.response;
             const BODY = await vscode_helpers.readAll(RESP);
 
@@ -990,7 +990,7 @@ export class HTTPRequest extends HTTPRequestBase {
         }
 
         await this.postMessage('sendRequestCompleted', {
-            error: vscode_helpers.toStringSafe(err),
+            error: err,
             response: r,
         });
     }

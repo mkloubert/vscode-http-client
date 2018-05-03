@@ -18,6 +18,7 @@
 import * as _ from 'lodash';
 import * as HTTP from 'http';
 import * as HTTPs from 'https';
+import * as Moment from 'moment';
 const NormalizeHeaderCase = require("header-case-normalizer");
 import * as URL from 'url';
 import * as vschc from './extension';
@@ -342,19 +343,40 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
                     OPTS.timeout = 10000;  // no custom timeout
                 }
 
-                const APPLY_HEADERS = (headersToApply: any) => {
+                const APPLY_HEADERS = async (headersToApply: any) => {
                     if (headersToApply) {
                         for (const H in headersToApply) {
                             const NAME = NormalizeHeaderCase(H);
                             if ('' !== NAME) {
-                                OPTS.headers[NAME] = vscode_helpers.toStringSafe( headersToApply[H] );
+                                let value: any = await asStringValue( headersToApply[H] );
+                                if (!_.isSymbol(value)) {
+                                    if ('Authorization' === NAME) {
+                                        if (value.toLowerCase().trim().startsWith('basic ')) {
+                                            const AUTH_SEP: number = value.indexOf(':');
+
+                                            if (AUTH_SEP > -1) {
+                                                // authmatically convert to Base64 string
+
+                                                value = value.trim();
+
+                                                value = value.substr(
+                                                    value.indexOf(' ') + 1
+                                                ).trim();
+
+                                                value = 'Basic ' + (new Buffer(value)).toString('base64');
+                                            }
+                                        }
+                                    }
+
+                                    OPTS.headers[NAME] = <any>value;
+                                }
                             }
                         }
                     }
                 };
 
-                APPLY_HEADERS(DATA.headers);  // first the default value
-                APPLY_HEADERS(ME._headers);  // then the custom ones
+                await APPLY_HEADERS(DATA.headers);  // first the default value
+                await APPLY_HEADERS(ME._headers);  // then the custom ones
 
                 if (vscode_helpers.isEmptyString(OPTS.hostname)) {
                     OPTS.hostname = '127.0.0.1';
@@ -370,19 +392,22 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
                 // query params
                 let query = [];
                 {
-                    const APPLY_PARAMS = (q: any) => {
+                    const APPLY_PARAMS = async (q: any) => {
                         if (q) {
                             for (let p in q) {
-                                query.push({
-                                    'name': vscode_helpers.toStringSafe(p).trim(),
-                                    'value': vscode_helpers.toStringSafe( q[p] ),
-                                });
+                                const VALUE = await asStringValue( q[p] );
+                                if (!_.isSymbol(VALUE)) {
+                                    query.push({
+                                        'name': vscode_helpers.toStringSafe( p ).trim(),
+                                        'value': VALUE,
+                                    });
+                                }
                             }
                         }
                     };
 
-                    APPLY_PARAMS( uriParamsToObject(REQUEST_URL) );
-                    APPLY_PARAMS( ME._query );
+                    await APPLY_PARAMS( uriParamsToObject(REQUEST_URL) );
+                    await APPLY_PARAMS( ME._query );
 
                     if (query.length > 0) {
                         OPTS.path += '?';
@@ -588,6 +613,29 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
 
         return this._url;
     }
+}
+
+
+async function asStringValue(val: any): Promise<string | symbol> {
+    if (_.isString(val)) {
+        return val;
+    }
+
+    if (_.isSymbol(val)) {
+        return vschc.IS_UNSET;
+    }
+
+    if (!_.isNil(val)) {
+        if (Moment.isDate(val)) {
+            return Moment(val).toISOString();
+        } else if (Moment.isMoment(val)) {
+            val =  val.toISOString();
+        } else {
+            val = (await vscode_helpers.asBuffer(val)).toString('ascii');
+        }
+    }
+
+    return vscode_helpers.toStringSafe(val);
 }
 
 function uriParamsToObject(uri: URL.Url | vscode.Uri): any {

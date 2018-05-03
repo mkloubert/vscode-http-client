@@ -56,13 +56,44 @@ export async function executeScript(_e0bcc1df_3f0b_4a19_9e42_238d7fe990c5: Execu
     const $moment = require('moment');
     require('moment-timezone');
 
+    const _ = require('lodash');
     const $fs = require('fs-extra');
     const $h = require('vscode-helpers');
-    const $uuid = require('uuid');
+    const $linq = require('node-enumerable');
     const $vs = require('vscode');
 
     const cancel = _e0bcc1df_3f0b_4a19_9e42_238d7fe990c5.cancelToken;
     const from = $h.from;
+    const guid = (ver?: string, ...args: any[]): string => {
+        const UUID = require('uuid');
+
+        ver = $h.normalizeString(ver);
+
+        let func: Function | false = false;
+        switch (ver) {
+            case '1':
+            case 'v1':
+                func = UUID.v1;
+                break;
+
+            case '':
+            case '4':
+            case 'v4':
+                func = UUID.v4;
+                break;
+
+            case '5':
+            case 'v5':
+                func = UUID.v5;
+                break;
+        }
+
+        if (false === func) {
+            throw new Error(`Version '${ ver }' is not supported!`);
+        }
+
+        return func.apply(null, args);
+    };
     const new_request = () => {
         const REQ = new (require('./http').HTTPClient)(
             _e0bcc1df_3f0b_4a19_9e42_238d7fe990c5.handler,
@@ -81,8 +112,13 @@ export async function executeScript(_e0bcc1df_3f0b_4a19_9e42_238d7fe990c5: Execu
 
         return REQ;
     };
-    const now = () => {
-        return $moment();
+    const now = (timeZone?: string) => {
+        const N = $moment();
+
+        timeZone = $h.toStringSafe(timeZone).trim();
+
+        return '' === timeZone ? N
+                               : N.tz(timeZone);
     };
     const progress = _e0bcc1df_3f0b_4a19_9e42_238d7fe990c5.progress;
     const sleep = async (secs?: number) => {
@@ -93,6 +129,7 @@ export async function executeScript(_e0bcc1df_3f0b_4a19_9e42_238d7fe990c5: Execu
 
         await $h.sleep(ms);
     };
+    const uuid = guid;
     const utc = () => {
         return $moment.utc();
     };

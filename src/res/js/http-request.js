@@ -202,7 +202,7 @@ function vschc_create_response_content(responseData, whenClosed) {
         const ALERT = jQuery('<div class="alert alert-danger" role="alert" />');
         ALERT.text( vschc_to_string(responseData.error) );        
 
-        ALERT.appendTo( CARD_BODY );        
+        ALERT.appendTo( CARD_BODY ); 
     } else {
         const RESPONSE = responseData.response;
 
