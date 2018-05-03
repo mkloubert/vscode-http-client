@@ -74,7 +74,7 @@ export async function executeScript(_e0bcc1df_3f0b_4a19_9e42_238d7fe990c5: Execu
             const THIS_ARGS = _e0bcc1df_3f0b_4a19_9e42_238d7fe990c5;
             const ON_DID_SEND = THIS_ARGS.onDidSend;
 
-            return await Promise.resolve(
+            return Promise.resolve(
                 ON_DID_SEND.apply(THIS_ARGS, arguments)
             );
         });

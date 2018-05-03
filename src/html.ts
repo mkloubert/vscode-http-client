@@ -133,10 +133,12 @@ export function generateHeader(opts: GenerateHeaderOptions) {
         <link rel="stylesheet" href="${ opts.getResourceUri('css/font-awesome.css') }">
         <link rel="stylesheet" href="${ opts.getResourceUri('css/hljs-atom-one-dark.css') }">
         <link rel="stylesheet" href="${ opts.getResourceUri('css/bootstrap.min.css') }">
+        <link rel="stylesheet" href="${ opts.getResourceUri('css/select2.min.css') }">
 
         <script src="${ opts.getResourceUri('js/highlight.pack.js') }"></script>
         <script src="${ opts.getResourceUri('js/jquery.min.js') }"></script>
         <script src="${ opts.getResourceUri('js/bootstrap.bundle.min.js') }"></script>
+        <script src="${ opts.getResourceUri('js/select2.full.min.js') }"></script>
 
         <script>
             const vscode = acquireVsCodeApi();

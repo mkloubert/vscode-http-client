@@ -229,7 +229,7 @@ function vschc_create_response_content(responseData, whenClosed) {
             }
 
             const SAVE_RAW_RESP_BTN = jQuery('<a class="btn btn-sm btn-secondary vschc-save-raw-response-btn" title="Save Raw">' + 
-                                             '<i class="fa fa-file-text" aria-hidden="true"></i>' + 
+                                             '<i class="fa fa-file-text text-dark" aria-hidden="true"></i>' + 
                                              '</a>');
             SAVE_RAW_RESP_BTN.on('click', () => {
                 vscode.postMessage({
@@ -665,6 +665,12 @@ function vschc_update_response_button_states(areEnabled) {
 }
 
 jQuery(() => {
+    jQuery('#vschc-input-method').select2({
+        tags: true
+    });
+})
+
+jQuery(() => {
     window.addEventListener('message', (e) => {
         if (!e) {
             return;
@@ -721,6 +727,8 @@ jQuery(() => {
                 {
                     const REQUEST = MSG.data;
 
+                    const METHOD_LIST = jQuery('#vschc-input-method');
+
                     let body    = REQUEST.body;
                     let headers = REQUEST.headers;
                     let method  = REQUEST.method;
@@ -730,6 +738,24 @@ jQuery(() => {
                     if (vschc_is_empty_str(method)) {
                         method = 'GET';
                     }
+                    {
+                        method = ('' + method).toUpperCase().trim();
+
+                        let methodFound = false;
+
+                        METHOD_LIST.find('option').each(function() {
+                            const OPTION = jQuery(this);
+
+                            if (OPTION.val() === method) {
+                                found = true;
+                            }
+                        });
+
+                        if (!methodFound) {
+                            METHOD_LIST.append( jQuery('<option />').text(method) );
+                        }
+                    }
+
                     if (vschc_is_empty_str(url)) {
                         url = '';
                     }
@@ -751,8 +777,8 @@ jQuery(() => {
                         }
                     }
 
-                    jQuery('#vschc-input-url').val( '' + url );
-                    jQuery('#vschc-input-method').val( ('' + method).toUpperCase().trim() );
+                    jQuery('#vschc-input-url').val( '' + url );      
+                    METHOD_LIST.val( method );              
                     jQuery('#vschc-input-title').val( '' + title )
                                                 .trigger('change');
 

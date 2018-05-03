@@ -250,11 +250,11 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
 
     /**
      * Invokes an action for a cancellation token source.
-     * 
+     *
      * @param {vscode.CancellationTokenSource} cancelTokenSrc The token source.
      * @param {Function} action The action to invoke.
      * @param {any[]} [args] One or more arguments for the action.
-     * 
+     *
      * @return {Promise<TResult>} The promise with the result of the action.
      */
     protected async invokeForCancellationTokenSource<TResult>(
@@ -821,7 +821,7 @@ export class HTTPRequest extends HTTPRequestBase {
 </a>
 
 <a class="btn btn-secondary btn-sm" id="vschc-export-request-btn" title="Save Request Settings To File">
-    <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
+    <i class="fa fa-pencil-square-o text-dark" aria-hidden="true"></i>
 </a>
 `;
             },
