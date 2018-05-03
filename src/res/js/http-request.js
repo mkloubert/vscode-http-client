@@ -157,8 +157,14 @@ function vschc_create_response_content(responseData, whenClosed) {
     const CARD_BODY = CARD;
 
     const CARD_BUTTONS = [];
+    const ADD_BUTTON = (btn, col) => {
+        CARD_BUTTONS.push({
+            button: btn,
+            column: col,
+        });
+    };
     const INSERT_BUTTONS = () => {
-        const CLOSE_CARD_BTN = jQuery('<a class="btn btn-sm btn-danger align-middle vschc-remove-response-btn float-right" title="Close">' + 
+        const CLOSE_CARD_BTN = jQuery('<a class="btn btn-sm btn-danger align-middle vschc-remove-response-btn" title="Close">' + 
                                       '<i class="fa fa-times" aria-hidden="true"></i>' + 
                                       '</a>');
         CLOSE_CARD_BTN.on('click', () => {
@@ -172,12 +178,17 @@ function vschc_create_response_content(responseData, whenClosed) {
                 vschc_reset_response();
             }
         });
-        CARD_BUTTONS.push( CLOSE_CARD_BTN );
+        ADD_BUTTON(CLOSE_CARD_BTN, 3);
 
-        const BUTTON_LIST = jQuery('<div class="vschc-response-buttons" />');
+        const BUTTON_LIST = jQuery('<div class="vschc-response-buttons row">' + 
+                                   '<div class="col col-xs-4 vschc-col vschc-col-1 text-left" />' + 
+                                   '<div class="col col-xs-4 vschc-col vschc-col-2 text-center" />' + 
+                                   '<div class="col col-xs-4 vschc-col vschc-col-3 text-right" />' + 
+                                   '</div>');
 
         for (const CB of CARD_BUTTONS) {
-            CB.appendTo( BUTTON_LIST );
+            BUTTON_LIST.find(`.vschc-col-${CB.column}`)
+                       .append(CB.button);
         }
 
         BUTTON_LIST.appendTo( CARD_BODY );
@@ -214,7 +225,7 @@ function vschc_create_response_content(responseData, whenClosed) {
                     });
                 });
 
-                CARD_BUTTONS.push( SAVE_BTN );
+                ADD_BUTTON(SAVE_BTN, 1);
             }
 
             const SAVE_RAW_RESP_BTN = jQuery('<a class="btn btn-sm btn-secondary vschc-save-raw-response-btn" title="Save Raw">' + 
@@ -226,7 +237,7 @@ function vschc_create_response_content(responseData, whenClosed) {
                     data: RESPONSE
                 });
             });
-            CARD_BUTTONS.push( SAVE_RAW_RESP_BTN );
+            ADD_BUTTON(SAVE_RAW_RESP_BTN, 1);
 
             const OPEN_RESPONSE_IN_EDITOR_BTN = jQuery('<a class="btn btn-sm btn-dark vschc-open-response-btn" title="Open Response In Editor">' + 
                                                        '<i class="fa fa-arrow-down" aria-hidden="true"></i>' + 
@@ -237,7 +248,7 @@ function vschc_create_response_content(responseData, whenClosed) {
                     data: RESPONSE
                 });
             });
-            CARD_BUTTONS.push( OPEN_RESPONSE_IN_EDITOR_BTN );
+            ADD_BUTTON(OPEN_RESPONSE_IN_EDITOR_BTN, 2);
 
             const OPEN_REQUEST_IN_EDITOR_BTN = jQuery('<a class="btn btn-sm btn-dark vschc-open-request-btn" title="Open Request In Editor">' + 
                                                       '<i class="fa fa-arrow-up" aria-hidden="true"></i>' + 
@@ -248,7 +259,7 @@ function vschc_create_response_content(responseData, whenClosed) {
                     data: RESPONSE
                 });
             });
-            CARD_BUTTONS.push( OPEN_REQUEST_IN_EDITOR_BTN );
+            ADD_BUTTON(OPEN_REQUEST_IN_EDITOR_BTN, 2);
         }
 
         INSERT_BUTTONS();

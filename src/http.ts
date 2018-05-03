@@ -80,7 +80,7 @@ export interface SendHTTPRequestResult {
 /**
  * A HTTP client.
  */
-export class HTTPClient {
+export class HTTPClient extends vscode_helpers.DisposableBase {
     private _body: any;
     private _headers: any;
     private _method: any;
@@ -94,11 +94,15 @@ export class HTTPClient {
      *
      * @param {vschc_requests.IHTTPRequest} request The request.
      * @param {vschc_requests.RequestData} data The data.
+     * @param {vscode.CancellationToken} [cancelToken] An optional cancellation token to use.
      */
     public constructor(
         public readonly request: vschc_requests.IHTTPRequest,
         public readonly data: vschc_requests.RequestData,
+        public readonly cancelToken?: vscode.CancellationToken,
     ) {
+        super();
+
         this.unsetAll();
 
         this.unsetOnDidSendListeners();
@@ -252,9 +256,15 @@ export class HTTPClient {
 
     /**
      * Sends the request based on the current data.
+     *
+     * @param {vscode.CancellationToken} [token] The (custom) cancellation token to use.
      */
-    public send() {
+    public send(token?: vscode.CancellationToken) {
         const ME = this;
+
+        if (arguments.length < 1) {
+            token = ME.cancelToken;  // use default
+        }
 
         return new Promise<SendHTTPRequestResult>(async (resolve, reject) => {
             let completedInvoked = false;
@@ -272,6 +282,16 @@ export class HTTPClient {
                     reject(err);
                 } else {
                     resolve(result);
+                }
+            };
+            const COMPLETED_SYNC = (err: any, result?: SendHTTPRequestResult) => {
+                try {
+                    COMPLETED(err, result).then(() => {
+                    }, (err) => {
+                        reject(err);
+                    });
+                } catch (e) {
+                    reject(e);
                 }
             };
 
@@ -304,15 +324,13 @@ export class HTTPClient {
                 let bodyReader: Base64Reader;
 
                 const CALLBACK = (resp: HTTP.ClientResponse) => {
-                    COMPLETED(null, {
+                    COMPLETED_SYNC(null, {
                         data: DATA,
                         options: OPTS,
                         readRequestBody: bodyReader,
                         request: newRequest,
                         response: resp,
                         url: REQUEST_URL,
-                    }).then(() => {}, (err) => {
-                        reject(err);
                     });
                 };
 
@@ -428,17 +446,30 @@ export class HTTPClient {
 
                 newRequest.once('error', (err) => {
                     if (err) {
-                        COMPLETED(err).then(() => {}, (e) => {
-                            reject(e);
-                        });
+                        COMPLETED_SYNC(err);
                     }
                 });
 
+                const ABORT = () => {
+                    let err: any = null;
+                    try {
+                        newRequest.abort();
+                    } catch (e) {
+                        err = e;
+                    }
+
+                    COMPLETED_SYNC(err);
+                };
+
+                if (token) {
+                    token.onCancellationRequested(() => {
+                        ABORT();
+                    });
+                }
+
                 newRequest.end();
             } catch (e) {
-                COMPLETED(e).then(() => {}, (err) => {
-                    reject(err);
-                });
+                COMPLETED_SYNC(e);
             }
         });
     }

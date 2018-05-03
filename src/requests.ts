@@ -183,6 +183,10 @@ interface WebViewMessage {
 }
 
 
+/**
+ * Name of an event that is invoked after a WebView panel has been disposed.
+ */
+export const EVENT_WEBVIEWPANEL_DISPOSED = 'webviewpanel.disposed';
 let nextHTTPRequestId = Number.MIN_SAFE_INTEGER;
 /**
  * The global list of requests.
@@ -242,6 +246,38 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
         this._html = '';
 
         await this.onInitialize();
+    }
+
+    /**
+     * Invokes an action for a cancellation token source.
+     * 
+     * @param {vscode.CancellationTokenSource} cancelTokenSrc The token source.
+     * @param {Function} action The action to invoke.
+     * @param {any[]} [args] One or more arguments for the action.
+     * 
+     * @return {Promise<TResult>} The promise with the result of the action.
+     */
+    protected async invokeForCancellationTokenSource<TResult>(
+        cancelTokenSrc: vscode.CancellationTokenSource,
+        action: (...args: any[]) => TResult | PromiseLike<TResult>, ...args: any[]
+    ) {
+        const DISPOSED_LISTENER = () => {
+            try {
+                cancelTokenSrc.cancel();
+            } catch (e) {
+                vschc.showError(e);
+            }
+        };
+
+        this.once(EVENT_WEBVIEWPANEL_DISPOSED, DISPOSED_LISTENER);
+        try {
+            return await Promise.resolve(
+                action.apply(null, args)
+            );
+        } finally {
+            vscode_helpers.tryRemoveListener(this,
+                                             EVENT_WEBVIEWPANEL_DISPOSED, DISPOSED_LISTENER);
+        }
     }
 
     /**
@@ -385,10 +421,14 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
             });
 
             newPanel.onDidDispose(() => {
+                let err: any;
                 try {
                     ME.onDidDispose().then(() => {
-                    }, (err) => {});
-                } catch { }
+                    }, () => {});
+                } catch (e) { err = e; }
+
+                ME.emit(EVENT_WEBVIEWPANEL_DISPOSED,
+                        err, ME.panel);
             });
 
             if (false !== ME._html) {
@@ -886,20 +926,30 @@ export class HTTPRequest extends HTTPRequestBase {
     }
 
     private async sendRequest(request: RequestData) {
-        const HTTP_CLIENT = new vschc_http.HTTPClient(this, request);
+        const ME = this;
 
-        let err: any;
-        let result: vschc_http.SendHTTPRequestResult;
-        try {
-            result = await HTTP_CLIENT.send();
-        } catch (e) {
-            err = e;
-        }
+        await vscode_helpers.using(new vscode.CancellationTokenSource(), async (cancelTokenSrc) => {
+            await ME.invokeForCancellationTokenSource(cancelTokenSrc, async () => {
+                await vscode_helpers.using(new vschc_http.HTTPClient(ME, request), async (client) => {
+                    let err: any;
+                    let result: vschc_http.SendHTTPRequestResult;
+                    try {
+                        result = await client.send(cancelTokenSrc.token);
+                    } catch (e) {
+                        err = e;
+                    }
 
-        await this.sendRequestCompleted(err, result);
+                    await ME.sendRequestCompleted(err, result);
+                });
+            });
+        });
     }
 
     private async sendRequestCompleted(err: any, result: vschc_http.SendHTTPRequestResult) {
+        if (!result) {
+            return;
+        }
+
         let r: SendRequestResponse;
         if (!err) {
             const RESP = result.response;

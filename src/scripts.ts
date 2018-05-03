@@ -67,6 +67,7 @@ export async function executeScript(_e0bcc1df_3f0b_4a19_9e42_238d7fe990c5: Execu
         const REQ = new (require('./http').HTTPClient)(
             _e0bcc1df_3f0b_4a19_9e42_238d7fe990c5.handler,
             _e0bcc1df_3f0b_4a19_9e42_238d7fe990c5.request,
+            _e0bcc1df_3f0b_4a19_9e42_238d7fe990c5.cancelToken,
         );
 
         REQ.onDidSend(async function() {
