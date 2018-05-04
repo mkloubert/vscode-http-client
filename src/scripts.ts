@@ -36,6 +36,10 @@ export interface ExecuteScriptOptions {
      */
     onDidSend: Function;
     /**
+     * The output channel.
+     */
+    output: any;
+    /**
      * The progress context.
      */
     progress: any;
@@ -62,6 +66,14 @@ export async function executeScript(_e0bcc1df_3f0b_4a19_9e42_238d7fe990c5: Execu
     const $linq = require('node-enumerable');
     const $vs = require('vscode');
 
+    const alert = async (msg: any, ...args: any[]) => {
+        msg = $h.toStringSafe(msg);
+        args = $h.asArray(args, false)
+                 .map(x => $h.toStringSafe(x));
+
+        return $vs.window.showWarningMessage
+                         .apply(null, [ msg ].concat(args));
+    };
     const cancel = _e0bcc1df_3f0b_4a19_9e42_238d7fe990c5.cancelToken;
     const from = $h.from;
     const guid = (ver?: string, ...args: any[]): string => {
@@ -120,6 +132,7 @@ export async function executeScript(_e0bcc1df_3f0b_4a19_9e42_238d7fe990c5: Execu
         return '' === timeZone ? N
                                : N.tz(timeZone);
     };
+    const output = _e0bcc1df_3f0b_4a19_9e42_238d7fe990c5.output;
     const progress = _e0bcc1df_3f0b_4a19_9e42_238d7fe990c5.progress;
     const sleep = async (secs?: number) => {
         let ms = Math.floor( parseFloat($h.toStringSafe(secs).trim()) * 1000.0 );

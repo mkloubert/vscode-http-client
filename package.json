@@ -2,7 +2,7 @@
     "name": "vscode-http-client",
     "displayName": "HTTP Client",
     "description": "Simple way to do HTTP requests.",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "publisher": "mkloubert",
     "engines": {
         "vscode": "^1.23.0"
@@ -32,6 +32,11 @@
             {
                 "command": "extension.http.client.newRequest",
                 "title": "New HTTP request ...",
+                "category": "HTTP Client"
+            },
+            {
+                "command": "extension.http.client.newRequestSplitView",
+                "title": "New HTTP request (split view)...",
                 "category": "HTTP Client"
             },
             {
@@ -92,17 +97,29 @@
                 {
                     "command": "extension.http.client.newRequestForEditor",
                     "group": "httpclient"
+                },
+                {
+                    "command": "extension.http.client.newRequestSplitView",
+                    "group": "httpclient"
                 }
             ],
             "editor/title": [
                 {
                     "command": "extension.http.client.newRequestForEditor",
                     "group": "httpclient"
+                },
+                {
+                    "command": "extension.http.client.newRequestSplitView",
+                    "group": "httpclient"
                 }
             ],
             "explorer/context": [
                 {
                     "command": "extension.http.client.newRequestForEditor",
+                    "group": "httpclient"
+                },
+                {
+                    "command": "extension.http.client.newRequestSplitView",
                     "group": "httpclient"
                 }
             ]

@@ -93,6 +93,7 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
     private _body: any;
     private _headers: any;
     private _method: any;
+    private _noResult = false;
     private _onDidSend: OnDidSendListener[];
     private _query: any;
     private _timeout: any;
@@ -192,11 +193,28 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
     }
 
     /**
+     * Gets or sets if a result should be shown or not.
+     *
+     * @param {any} [newValue] The new value.
+     *
+     * @return {boolean|this}
+     */
+    public noResult(newValue?: any): boolean | this {
+        if (arguments.length > 0) {
+            this._noResult = vscode_helpers.toBooleanSafe(newValue);
+
+            return this;
+        }
+
+        return this._noResult;
+    }
+
+    /**
      * Adds an event listener that is invoked AFTER a request has been send.
      *
      * @param {OnDidSendListener} listener The listener to add.
      *
-     * @return this
+     * @return {this}
      */
     public onDidSend(listener: OnDidSendListener) {
         if (listener) {
@@ -287,8 +305,10 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
                 }
                 completedInvoked = true;
 
-                for (const L of vscode_helpers.toArray(ME._onDidSend)) {
-                    await Promise.resolve( L(err, result) );
+                if (!ME._noResult) {
+                    for (const L of vscode_helpers.toArray(ME._onDidSend)) {
+                        await Promise.resolve( L(err, result) );
+                    }
                 }
 
                 if (result) {
@@ -520,7 +540,7 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
     /**
      * Unsets all custom values.
      *
-     * @return this
+     * @return {this}
      */
     public unsetAll() {
         this.unsetBody();
@@ -536,7 +556,7 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
     /**
      * Unsets the custom body.
      *
-     * @return this
+     * @return {this}
      */
     public unsetBody(): this {
         this._body = vschc.IS_UNSET;
@@ -547,7 +567,7 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
     /**
      * Unsets the custom headers.
      *
-     * @return this
+     * @return {this}
      */
     public unsetHeaders(): this {
         this._headers = {};
@@ -558,7 +578,7 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
     /**
      * Unsets the custom HTTP method.
      *
-     * @return this
+     * @return {this}
      */
     public unsetMethod(): this {
         this._method = vschc.IS_UNSET;
@@ -569,7 +589,7 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
     /**
      * Unsets all 'onDidSend' listeners.
      *
-     * @return this
+     * @return {this}
      */
     public unsetOnDidSendListeners() {
         this._onDidSend = [];
@@ -580,7 +600,7 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
     /**
      * Unsets the custom query parameters.
      *
-     * @return this
+     * @return {this}
      */
     public unsetParams() {
         this._query = {};
@@ -591,7 +611,7 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
     /**
      * Unsets the custom timeout.
      *
-     * @return this
+     * @return {this}
      */
     public unsetTimeout() {
         this._timeout = vschc.IS_UNSET;
@@ -602,7 +622,7 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
     /**
      * Unsets the custom url.
      *
-     * @return this
+     * @return {this}
      */
     public unsetUrl() {
         this._url = vschc.IS_UNSET;

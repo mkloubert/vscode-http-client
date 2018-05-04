@@ -9,6 +9,8 @@
 
 Simple way to do [HTTP requests](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol) in [Visual Studio Code](https://code.visualstudio.com/).
 
+![Demo 1](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/demo1.gif)
+
 ## Table of contents
 
 1. [Install](#install-)
@@ -18,8 +20,10 @@ Simple way to do [HTTP requests](https://en.wikipedia.org/wiki/Hypertext_Transfe
      * [Execute scripts](#execute-scripts-)
        * [Constants](#constants-)
          * [cancel](#cancel-)
+         * [output](#output-)
          * [progress](#progress-)
        * [Functions](#functions-)
+         * [alert](#alert-)
          * [from](#from-)
          * [guid](#guid-)
          * [new_request](#new_request-)
@@ -80,6 +84,8 @@ There are currently no predefined key bindings for these commands, but you can s
 
 For things, like batch operations, you can execute scripts, using the [Node.js API](https://nodejs.org/en/), which is provided by VS Code.
 
+![Demo 2](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/demo2.gif)
+
 ```javascript
 const USERS = [{
     id: 5979,
@@ -92,28 +98,44 @@ const USERS = [{
 const SESSION_ID = uuid();
 const CURRENT_TIME = utc();
 
+// show output channel
+output.show();
+
 for (let i = 0; i < USERS.length; i++) {
     if (cancel.isCancellationRequested) {
         break;  // user wants to cancel
     }
 
-    const U = USERS[i];
+    try {
+        const U = USERS[i];
 
-    const REQUEST = new_request();
+        const REQUEST = new_request();
 
-    REQUEST.param('user', U.id)  // set / overwrite an URL / query parameter           
-           .header('X-User-Name', U.name)  // set / overwrite a request header
-           .header('X-Date', CURRENT_TIME)  // automatically converts to ISO-8601
-           .header('X-Session', SESSION_ID)
-           .body( await $fs.readFile('/path/to/bodies/user_' + U.id + '.json') );  // set / overwrite body
+        // do not show any result
+        // in the GUI
+        // this is good, if you do many requests
+        REQUEST.noResult(true);
 
-    // you can also use one of the upper setters
-    // as getters
-    if ('MK' === REQUEST.header('X-User-Name')) {
-        REQUEST.param('debug', 'true');
+        REQUEST.param('user', U.id)  // set / overwrite an URL / query parameter           
+            .header('X-User-Name', U.name)  // set / overwrite a request header
+            .header('X-Date', CURRENT_TIME)  // automatically converts to ISO-8601
+            .header('X-Session', SESSION_ID)
+            .body( await $fs.readFile('/path/to/bodies/user_' + U.id + '.json') );  // set / overwrite body
+
+        // you can also use one of the upper setters
+        // as getters
+        if ('MK' === REQUEST.header('X-User-Name')) {
+            REQUEST.param('debug', 'true');
+        }
+
+        output.append(`Sending request for '${ U }' ... `);
+
+        await REQUEST.send();
+
+        output.appendLine(`[OK]`);
+    } catch (e) {
+        output.appendLine(`[ERROR: '${ $h.toStringSafe(e) }']`);
     }
-
-    await REQUEST.send();
 }
 ```
 
@@ -133,6 +155,19 @@ for (let i = 0; i < USER_IDS.length; i++) {
 
     // TODO
 }
+```
+
+###### output [[&uarr;](#constants-)]
+
+Provides the [OutputChannel](https://code.visualstudio.com/docs/extensionAPI/vscode-api#OutputChannel) of the extension.
+
+```javascript
+output.show();
+
+output.append('Hello');
+output.appendLine(', TM!');
+
+output.hide();
 ```
 
 ###### progress [[&uarr;](#constants-)]
@@ -155,6 +190,25 @@ for (let i = 0; i < USER_IDS.length; i++) {
 ```
 
 ##### Functions [[&uarr;](#execute-scripts-)]
+
+###### alert [[&uarr;](#functions-)]
+
+Shows a (wanring) popup.
+
+```javascript
+alert('Hello!');
+
+// with custom buttons
+switch (await alert('Sure?', 'NO!', 'Yes')) {
+    case 'NO!':
+        console.log('User is UN-SURE!');
+        break;
+
+    case 'Yes':
+        console.log('User is sure.');
+        break;
+}
+```
 
 ###### from [[&uarr;](#functions-)]
 

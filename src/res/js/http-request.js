@@ -1,5 +1,6 @@
 
 let vschc_do_not_show_body_from_file_btn = false;
+let vschc_next_response_id = -1;
 
 function vschc_add_header_row(name, value) {
     const CARD = jQuery('#vschc-headers-card');
@@ -301,6 +302,7 @@ function vschc_create_response_content(responseData, whenClosed) {
                                         '</div>' + 
                                         '<div class="card-body" />' + 
                                         '</div>');
+            DETAILS_CARD.appendTo( CARD_BODY );
 
             let reponseId = -1;
             do {
@@ -312,12 +314,11 @@ function vschc_create_response_content(responseData, whenClosed) {
                 }
             } while (true);
 
-            const TAB = jQuery('<div>' + 
-                               '<div class="tab-content" />' + 
-                               '</div>');
+            const TAB = jQuery('<div class="tab-content" />');
+            TAB.appendTo( DETAILS_CARD.find('.card-body') );
 
             const TAB_ITEMS = DETAILS_CARD.find('.nav-pills');
-            const TAB_CONTENT = TAB.find('.tab-content');
+            const TAB_CONTENT = TAB;
 
             TAB_ITEMS.attr('id', `vschc-response-nav-pills-${ reponseId }`);
             TAB_CONTENT.attr('id', `vschc-response-nav-tab-content-${ reponseId }`);
@@ -326,26 +327,25 @@ function vschc_create_response_content(responseData, whenClosed) {
             const ADD_NEW_ITEM = (title, content) => {
                 ++reponseTabId;
 
-                const NEW_TAB_ID = `vschc-response-nav-tab-item-${ reponseTabId }`;
-                const NEW_TAB_PANE_ID = `vschc-response-nav-tab-pane-${ reponseTabId }`;
+                const NEW_TAB_ID = `vschc-response-nav-tab-item-${ reponseId }-${ reponseTabId }`;
+                const NEW_TAB_PANE_ID = `vschc-response-nav-tab-pane-${ reponseId }-${ reponseTabId }`;
 
                 const NEW_TAB_ITEM = jQuery('<li class="nav-item">' + 
-                                            `<a class="nav-link" id="${ NEW_TAB_ID }" data-toggle="pill" href="#${ NEW_TAB_PANE_ID }" role="tab" aria-controls="${ NEW_TAB_PANE_ID }" aria-selected="true" />` + 
+                                            `<a class="nav-link" id="${ NEW_TAB_ID }" data-toggle="pill" href="#${ NEW_TAB_PANE_ID }" aria-controls="${ NEW_TAB_PANE_ID }" />` + 
                                             '</li>');
                 NEW_TAB_ITEM.find('a').append( title );
 
-                const NEW_TAB_PANE = jQuery(`<div class="tab-pane fade" id="${ NEW_TAB_PANE_ID }" role="tabpanel" aria-labelledby="${ NEW_TAB_ID }" />`);
+                const NEW_TAB_PANE = jQuery(`<div class="tab-pane active" id="${ NEW_TAB_PANE_ID }" role="tabpanel" aria-labelledby="${ NEW_TAB_ID }" />`);
                 NEW_TAB_PANE.append( content );
+
+                NEW_TAB_PANE.appendTo( TAB_CONTENT );
+                NEW_TAB_ITEM.appendTo( TAB_ITEMS );
 
                 if (0 === reponseTabId) {
                     NEW_TAB_ITEM.find('a').addClass('active');
 
-                    NEW_TAB_PANE.addClass('show')
-                                .addClass('active');
+                    NEW_TAB_PANE.addClass('show');
                 }
-
-                NEW_TAB_PANE.appendTo( TAB_CONTENT );
-                NEW_TAB_ITEM.appendTo( TAB_ITEMS );
             };
 
             // RESPONSE
@@ -410,9 +410,8 @@ function vschc_create_response_content(responseData, whenClosed) {
                 }
 
                 if (!vschc_is_empty_str(RESPONSE.body)) {
-                    const SAVE_CONTENT_BTN = jQuery('<a class="btn btn-sm btn-primary">' + 
+                    const SAVE_CONTENT_BTN = jQuery('<a class="btn btn-sm btn-primary" title="Save Response Content">' + 
                                                     '<i class="fa fa-floppy-o" aria-hidden="true"></i>' + 
-                                                    '<span>Save Response Content</span>' + 
                                                     '</a>');
                     SAVE_CONTENT_BTN.on('click', function() {
                         vscode.postMessage({
@@ -424,9 +423,8 @@ function vschc_create_response_content(responseData, whenClosed) {
                         });
                     });
 
-                    const OPEN_IN_EDITOR_BTN = jQuery('<a class="btn btn-sm btn-dark">' + 
+                    const OPEN_IN_EDITOR_BTN = jQuery('<a class="btn btn-sm btn-dark" title="Open Response In Editor">' + 
                                                       '<i class="fa fa-pencil-square" aria-hidden="true"></i>' + 
-                                                      '<span>Open Response In Editor</span>' + 
                                                       '</a>');
                     OPEN_IN_EDITOR_BTN.on('click', function() {
                         vscode.postMessage({
@@ -490,9 +488,7 @@ function vschc_create_response_content(responseData, whenClosed) {
                     );
 
                     for (const H in RESPONSE.request.headers) {
-                        for (const H in RESPONSE.request.headers) {
-                            http += `${H}: ${ RESPONSE.request.headers[H] }\r\n`;
-                        }
+                        http += `${H}: ${ RESPONSE.request.headers[H] }\r\n`;
                     }
                 }
 
@@ -514,9 +510,8 @@ function vschc_create_response_content(responseData, whenClosed) {
                 const BUTTONS = [];
 
                 if (!vschc_is_empty_str(RESPONSE.request.body)) {
-                    const OPEN_IN_EDITOR_BTN = jQuery('<a class="btn btn-sm btn-dark">' + 
+                    const OPEN_IN_EDITOR_BTN = jQuery('<a class="btn btn-sm btn-dark" title="Open Request In Editor">' + 
                                                       '<i class="fa fa-pencil-square" aria-hidden="true"></i>' + 
-                                                      '<span>Open Request In Editor</span>' + 
                                                       '</a>');
                     OPEN_IN_EDITOR_BTN.on('click', function() {
                         vscode.postMessage({
@@ -538,10 +533,6 @@ function vschc_create_response_content(responseData, whenClosed) {
                     BTN_LIST.prependTo( HTTP_CONTENT );
                 }
             }
-
-            TAB.appendTo( DETAILS_CARD.find('.card-body') );
-
-            DETAILS_CARD.appendTo( CARD_BODY );
         }
     }
 
@@ -806,7 +797,9 @@ function vschc_reset_headers() {
 function vschc_reset_response() {
     jQuery('#vschc-reset-responses-btn').hide();
 
-    jQuery('#vschc-response-card .card-body').text( 'No request started yet.' );
+    jQuery('#vschc-response-card .card-body').text( 'No request started yet.' );    
+
+    vschc_next_response_id = -1;
 }
 
 function vschc_send_request() {
@@ -1060,7 +1053,8 @@ jQuery(() => {
                     }
 
                     jQuery('#vschc-input-url').val( '' + url );      
-                    METHOD_LIST.val( method );              
+                    METHOD_LIST.val( method )
+                               .trigger('change');;              
                     jQuery('#vschc-input-title').val( '' + title )
                                                 .trigger('change');
 
@@ -1146,7 +1140,8 @@ jQuery(() => {
                              .removeClass('show');
                         });
 
-                        const NEXT_ID = EXISTING_TAB_PANES.length;
+                        // kloobi
+                        const NEXT_ID = ++vschc_next_response_id;
 
                         const TAB_ITEM_ID = `vschc-response-tab-item-${NEXT_ID}`;
                         const TAB_PANE_ID = `vschc-response-tab-pane-${NEXT_ID}`;

@@ -21,6 +21,7 @@ import * as _ from 'lodash';
 import * as FSExtra from 'fs-extra';
 const MergeDeep = require('merge-deep');
 import * as MimeTypes from 'mime-types';
+import * as Moment from 'moment';
 import * as Path from 'path';
 import * as OS from 'os';
 import * as vschc_requests from './requests';
@@ -28,6 +29,24 @@ import * as vschc_workspaces from './workspaces';
 import * as vscode from 'vscode';
 import * as vscode_helpers from 'vscode-helpers';
 
+
+/**
+ * Describes the structure of the package file of that extenstion.
+ */
+export interface PackageFile {
+    /**
+     * The display name.
+     */
+    readonly displayName: string;
+    /**
+     * The (internal) name.
+     */
+    readonly name: string;
+    /**
+     * The version string.
+     */
+    readonly version: string;
+}
 
 /**
  * Extenstion of 'vscode.OpenDialogOptions' interface.
@@ -50,6 +69,8 @@ let extension: vscode.ExtensionContext;
 export const IS_UNSET = Symbol('IS_UNSET');
 let isDeactivating = false;
 const KEY_LAST_KNOWN_DEFAULT_URI = 'vschcLastKnownDefaultUri';
+let outputChannel: vscode.OutputChannel;
+let packageFile: PackageFile;
 let workspaceWatcher: vscode_helpers.WorkspaceWatcherContext<vschc_workspaces.Workspace>;
 
 
@@ -69,6 +90,44 @@ export async function activate(context: vscode.ExtensionContext) {
         } catch (e) {
             showError(e);
         }
+    });
+
+    // output channel
+    WF.next(() => {
+        context.subscriptions.push(
+            outputChannel = vscode.window.createOutputChannel('HTTP Client')
+        );
+
+        outputChannel.hide();
+    });
+
+    // package file
+    WF.next(async () => {
+        try {
+            const CUR_DIR = __dirname;
+            const FILE_PATH = Path.join(CUR_DIR, '../package.json');
+
+            packageFile = JSON.parse(
+                await FSExtra.readFile(FILE_PATH, 'utf8')
+            );
+        } catch { }
+    });
+
+    // extension information
+    WF.next(() => {
+        const NOW = Moment();
+
+        if (packageFile) {
+            outputChannel.appendLine(`${packageFile.displayName} (${packageFile.name}) - v${packageFile.version}`);
+        }
+
+        outputChannel.appendLine(`Copyright (c) ${NOW.format('YYYY')}-${NOW.format('YYYY')}  Marcel Joachim Kloubert <marcel.kloubert@gmx.net>`);
+        outputChannel.appendLine('');
+        outputChannel.appendLine(`GitHub : https://github.com/mkloubert/vscode-http-client`);
+        outputChannel.appendLine(`Twitter: https://twitter.com/mjkloubert`);
+        outputChannel.appendLine(`Donate : https://paypal.me/MarcelKloubert`);
+
+        outputChannel.appendLine('');
     });
 
     // commands
@@ -328,6 +387,17 @@ for (let i = 0; i < USERS.length; i++) {
                     showError(e);
                 }
             }),
+
+            // newRequestSplitView
+            vscode.commands.registerCommand('extension.http.client.newRequestSplitView', async () => {
+                try {
+                    await vschc_requests.startNewRequest({
+                        showOptions: vscode.ViewColumn.Two,
+                    });
+                } catch (e) {
+                    showError(e);
+                }
+            }),
         );
     });
 
@@ -518,6 +588,15 @@ async function getDefaultUriForDialogs() {
     }
 
     return uri;
+}
+
+/**
+ * Returns the current output channel.
+ *
+ * @return {vscode.OutputChannel} The output channel.
+ */
+export function getOutputChannel() {
+    return outputChannel;
 }
 
 /**

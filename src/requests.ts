@@ -495,33 +495,55 @@ export class HTTPRequest extends HTTPRequestBase {
         let result: ExecuteScriptResult;
 
         try {
-            const VISIBLE_EDITORS = vscode_helpers.asArray( vscode.window.visibleTextEditors );
+            let editorsFound = false;
+
+            const VISIBLE_EDITORS = vscode_helpers.asArray( vscode.window.visibleTextEditors ).filter(e => {
+                return e.document &&
+                       !e.document.isClosed;
+            });
             if (VISIBLE_EDITORS.length > 0) {
                 for (const EDITOR of VISIBLE_EDITORS) {
-                    await vscode.window.withProgress({
-                        cancellable: true,
-                        location: vscode.ProgressLocation.Notification,
-                        title: 'Executing HTTP Script ...'
-                    }, async (progress, cancelToken) => {
-                        await vschc_scripts.executeScript({
-                            cancelToken: cancelToken,
-                            code: EDITOR.document.getText(),
-                            handler: ME,
-                            onDidSend: async (err: any, result?: vschc_http.SendHTTPRequestResult) => {
-                                await ME.sendRequestCompleted(err, result);
-                            },
-                            progress: progress,
-                            request: request,
+                    try {
+                        const DOC = EDITOR.document;
+
+                        if (!DOC.isUntitled) {
+                            if (!vscode_helpers.isEmptyString(DOC.fileName)) {
+                                if (!(await vscode_helpers.isFile(DOC.fileName))) {
+                                    continue;
+                                }
+                            }
+                        }
+
+                        editorsFound = true;
+
+                        await vscode.window.withProgress({
+                            cancellable: true,
+                            location: vscode.ProgressLocation.Notification,
+                            title: 'Executing HTTP Script ...'
+                        }, async (progress, cancelToken) => {
+                            await vschc_scripts.executeScript({
+                                cancelToken: cancelToken,
+                                code: DOC.getText(),
+                                handler: ME,
+                                onDidSend: async (err: any, result?: vschc_http.SendHTTPRequestResult) => {
+                                    await ME.sendRequestCompleted(err, result);
+                                },
+                                output: vschc.getOutputChannel(),
+                                progress: progress,
+                                request: request,
+                            });
                         });
-                    });
+                    } catch (e) {
+                        await ME.sendRequestCompleted(e, null);
+                    }
                 }
-            } else {
+            }
+
+            if (!editorsFound) {
                 vscode.window.showWarningMessage('No open (script) editor found!');
             }
         } catch (e) {
-            result = {
-                error: vscode_helpers.toStringSafe(e),
-            };
+            await ME.sendRequestCompleted(e, null);
         } finally {
             await ME.postMessage('executeScriptCompleted', result);
         }
