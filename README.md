@@ -168,8 +168,6 @@ output.show();
 
 output.append('Hello');
 output.appendLine(', TM!');
-
-output.hide();
 ```
 
 ###### progress [[&uarr;](#constants-)]
@@ -232,16 +230,16 @@ Generates a new unique ID, using [node-uuid](https://github.com/kelektiv/node-uu
 
 ```javascript
 // v1
-const GUID_v1_2 = guid('1');
+const GUID_v1_1 = guid('1');
 const GUID_v1_2 = guid('v1');
 
 // v4
 const GUID_v4_1 = guid();
 const GUID_v4_2 = guid('4');
-const GUID_v4_2 = guid('v4');
+const GUID_v4_3 = guid('v4');
 
 // v5
-const GUID_v5_2 = guid('5');
+const GUID_v5_1 = guid('5');
 const GUID_v5_2 = guid('v5');
 ```
 
@@ -267,7 +265,6 @@ Returns a new instance of a [Moment.js](https://momentjs.com/) object, by using 
 const CURRENT_TIME = now();
 console.log( CURRENT_TIME.format('YYYY-MM-DD HH:mm:ss') );
 
-// with timezone
 const CURRENT_TIME_WITH_TIMEZONE = now('Europe/Berlin');
 console.log( CURRENT_TIME_WITH_TIMEZONE.format('DD.MM.YYYY HH:mm') );
 ```
