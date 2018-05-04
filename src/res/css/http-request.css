@@ -103,3 +103,33 @@
 #vschc-send-request-col .btn {
     margin-left: 8px;
 }
+
+.vschc-response-overview .vschc-request-short-info .vschc-left {
+    padding-right: 4px;
+}
+
+.vschc-response-overview .vschc-request-short-info .vschc-right {
+    padding-left: 4px;
+}
+
+.vschc-response-overview .vschc-request-short-info .vschc-left,
+.vschc-response-overview .vschc-request-short-info .vschc-right {
+    vertical-align: middle;
+}
+
+.vschc-response-details .nav-item .fa {
+    margin-right: 8px;
+}
+
+.vschc-response-details .vschc-button-list {
+    display: block;
+    margin: 0 0 16px 0;
+}
+
+.vschc-response-details .vschc-button-list .btn {
+    margin-right: 8px;
+}
+
+.vschc-response-details .vschc-button-list .btn .fa {
+    margin-right: 8px;
+}

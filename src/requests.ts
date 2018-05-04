@@ -120,8 +120,10 @@ interface SendRequestResponse {
     httpVersion: string;
     request: {
         body: string;
+        executionTime: number;
         headers: any;
         method: string;
+        startTime: string;
         url: string;
     };
     suggestedExtension: string | false;
@@ -849,7 +851,7 @@ export class HTTPRequest extends HTTPRequestBase {
 
         let data: Buffer;
         {
-            let http = `${ REQUEST.method } ${ REQUEST.url }\r\n`;
+            let http = `${ REQUEST.method } ${ REQUEST.url } HTTP/1.1\r\n`;
 
             if (REQUEST.headers) {
                 for (const H in REQUEST.headers) {
@@ -972,8 +974,10 @@ export class HTTPRequest extends HTTPRequestBase {
                 httpVersion: RESP.httpVersion,
                 request: {
                     body: await result.readRequestBody(),
+                    executionTime: result.executionTime,
                     headers: vscode_helpers.cloneObject( result.options.headers ),
                     method: result.options.method,
+                    startTime: result.startTime.toISOString(),
                     url: url,
                 },
                 suggestedExtension: false,

@@ -56,6 +56,10 @@ export interface SendHTTPRequestResult {
      */
     data: vschc_requests.RequestData;
     /**
+     * The number of millisconds the 'send' operatio needs for the execution.
+     */
+    executionTime: number;
+    /**
      * The underlying request options.
      */
     options: HTTP.RequestOptions;
@@ -71,6 +75,10 @@ export interface SendHTTPRequestResult {
      * The underlying response context.
      */
     response: HTTP.ClientResponse;
+    /**
+     * The start time.
+     */
+    startTime: Moment.Moment;
     /**
      * The called URL.
      */
@@ -261,6 +269,8 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
      * @param {vscode.CancellationToken} [token] The (custom) cancellation token to use.
      */
     public send(token?: vscode.CancellationToken) {
+        const START_TIME = Moment.utc();
+
         const ME = this;
 
         if (arguments.length < 1) {
@@ -270,6 +280,8 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
         return new Promise<SendHTTPRequestResult>(async (resolve, reject) => {
             let completedInvoked = false;
             const COMPLETED = async (err: any, result?: SendHTTPRequestResult) => {
+                const END_TIME = Moment.utc();
+
                 if (completedInvoked) {
                     return;
                 }
@@ -277,6 +289,10 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
 
                 for (const L of vscode_helpers.toArray(ME._onDidSend)) {
                     await Promise.resolve( L(err, result) );
+                }
+
+                if (result) {
+                    result.executionTime = END_TIME.diff(START_TIME, 'milliseconds');
                 }
 
                 if (err) {
@@ -327,10 +343,12 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
                 const CALLBACK = (resp: HTTP.ClientResponse) => {
                     COMPLETED_SYNC(null, {
                         data: DATA,
+                        executionTime: undefined,
                         options: OPTS,
                         readRequestBody: bodyReader,
                         request: newRequest,
                         response: resp,
+                        startTime: START_TIME,
                         url: REQUEST_URL,
                     });
                 };

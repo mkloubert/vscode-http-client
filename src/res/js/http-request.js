@@ -163,255 +163,396 @@ function vschc_create_response_content(responseData, whenClosed) {
             column: col,
         });
     };
-    const INSERT_BUTTONS = () => {
-        const CLOSE_CARD_BTN = jQuery('<a class="btn btn-sm btn-danger align-middle vschc-remove-response-btn" title="Close">' + 
-                                      '<i class="fa fa-times" aria-hidden="true"></i>' + 
-                                      '</a>');
-        CLOSE_CARD_BTN.on('click', () => {
-            CARD.remove();
 
-            if (whenClosed) {
-                whenClosed();
-            }
+    let tabBackground = false;
+    let tabForeground = false;
+    let tabTitle = '';
 
-            if (jQuery('.vschc-response-card-entry').length < 1) {
-                vschc_reset_response();
-            }
-        });
-        ADD_BUTTON(CLOSE_CARD_BTN, 3);
-
-        const BUTTON_LIST = jQuery('<div class="vschc-response-buttons row">' + 
-                                   '<div class="col col-xs-4 vschc-col vschc-col-1 text-left" />' + 
-                                   '<div class="col col-xs-4 vschc-col vschc-col-2 text-center" />' + 
-                                   '<div class="col col-xs-4 vschc-col vschc-col-3 text-right" />' + 
-                                   '</div>');
-
-        for (const CB of CARD_BUTTONS) {
-            BUTTON_LIST.find(`.vschc-col-${CB.column}`)
-                       .append(CB.button);
-        }
-
-        BUTTON_LIST.appendTo( CARD_BODY );
-
-        CARD_BODY.append( '<div class="clearfix" />' );            
-    };
-    
     if (!vschc_is_empty_str( responseData.error )) {
-        INSERT_BUTTONS();
-
         const ALERT = jQuery('<div class="alert alert-danger" role="alert" />');
         ALERT.text( vschc_to_string(responseData.error) );        
 
-        ALERT.appendTo( CARD_BODY ); 
+        ALERT.appendTo( CARD_BODY );
+
+        tabBackground = 'bg-danger';
+        tabForeground = 'text-white';
     } else {
         const RESPONSE = responseData.response;
 
-        let contentDisplayer = false;
-        let suggestedExtension = RESPONSE.suggestedExtension;
+        const RESPONSE_OVERVIEW = jQuery('<div class="card vschc-response-overview">' + 
+                                         '<div class="card-header font-weight-bold" />' +
+                                         '<div class="card-body" />' + 
+                                         '</div>');
 
-        // card buttons
+        const RESPONSE_OVERVIEW_HEADER = RESPONSE_OVERVIEW.find('.card-header');
+
+        const RESPONSE_OVERVIEW_BODY = RESPONSE_OVERVIEW.find('.card-body');
+
+        // status & code
         {
-            if (!vschc_is_empty(RESPONSE.body)) {
-                const SAVE_BTN = jQuery('<a class="btn btn-sm btn-primary vschc-save-response-btn" title="Save Content">' + 
-                                        '<i class="fa fa-floppy-o" aria-hidden="true"></i>' + 
-                                        '</a>');
-                SAVE_BTN.on('click', function() {
-                    vscode.postMessage({
-                        command: 'saveContent',
-                        data: {
-                            data: RESPONSE.body,
-                            suggestedExtension: suggestedExtension,
-                        }
-                    });
-                });
+            const CODE_SPAN = jQuery('<span class="vschc-http-status-code" />');
+            let statusSpan;
 
-                ADD_BUTTON(SAVE_BTN, 1);
+            // code
+            let code = parseInt( vschc_to_string(RESPONSE.code).trim() );
+            if (isNaN(code)) {
+                RESPONSE_OVERVIEW_HEADER.addClass('bg-light');
+
+                CODE_SPAN.text('<UNKNOWN>');
+            } else {
+                if (code >= 100 && code < 200) {
+                    RESPONSE_OVERVIEW_HEADER.addClass(tabBackground = 'bg-info')
+                                            .addClass(tabForeground = 'text-white');
+                } else if (code >= 200 && code < 300) {
+                    RESPONSE_OVERVIEW_HEADER.addClass(tabBackground = 'bg-success')
+                                            .addClass(tabForeground = 'text-white');
+                } else if (code >= 300 && code < 400) {
+                    RESPONSE_OVERVIEW_HEADER.addClass(tabBackground = 'bg-light');
+                } else if (code >= 400 && code < 600) {
+                    RESPONSE_OVERVIEW_HEADER.addClass(tabBackground = 'bg-danger')
+                                            .addClass(tabForeground = 'text-white');
+                } else {
+                    RESPONSE_OVERVIEW_HEADER.addClass(tabBackground = 'bg-warning')
+                                            .addClass(tabForeground = 'text-white');
+                }
+
+                CODE_SPAN.text( code );
             }
 
-            const SAVE_RAW_RESP_BTN = jQuery('<a class="btn btn-sm btn-secondary vschc-save-raw-response-btn" title="Save Raw">' + 
-                                             '<i class="fa fa-file-text text-dark" aria-hidden="true"></i>' + 
-                                             '</a>');
-            SAVE_RAW_RESP_BTN.on('click', () => {
-                vscode.postMessage({
-                    command: 'saveRawResponse',
-                    data: RESPONSE
-                });
-            });
-            ADD_BUTTON(SAVE_RAW_RESP_BTN, 1);
+            // status
+            let status = vschc_to_string(RESPONSE.status).trim();
+            if ('' !== status) {
+                statusSpan = jQuery('<span class="vschc-http-status-msg" />');
 
-            const OPEN_RESPONSE_IN_EDITOR_BTN = jQuery('<a class="btn btn-sm btn-dark vschc-open-response-btn" title="Open Response In Editor">' + 
-                                                       '<i class="fa fa-arrow-down" aria-hidden="true"></i>' + 
-                                                       '</a>');
-            OPEN_RESPONSE_IN_EDITOR_BTN.on('click', () => {
-                vscode.postMessage({
-                    command: 'openReponseInEditor',
-                    data: RESPONSE
-                });
-            });
-            ADD_BUTTON(OPEN_RESPONSE_IN_EDITOR_BTN, 2);
+                statusSpan.text( ' - ' + status );
+            }
 
-            const OPEN_REQUEST_IN_EDITOR_BTN = jQuery('<a class="btn btn-sm btn-dark vschc-open-request-btn" title="Open Request In Editor">' + 
-                                                      '<i class="fa fa-arrow-up" aria-hidden="true"></i>' + 
-                                                      '</a>');
-            OPEN_REQUEST_IN_EDITOR_BTN.on('click', () => {
-                vscode.postMessage({
-                    command: 'openRequestInEditor',
-                    data: RESPONSE
-                });
-            });
-            ADD_BUTTON(OPEN_REQUEST_IN_EDITOR_BTN, 2);
+            RESPONSE_OVERVIEW_HEADER.append(CODE_SPAN);
+            if (statusSpan) {
+                RESPONSE_OVERVIEW_HEADER.append(statusSpan);
+            }
+        }
+        
+        // request short info
+        if (RESPONSE.request) {
+            const REQUEST_SHORT_INFO = jQuery('<div class="vschc-request-short-info" />');
+
+            const ADD_NEW_LINE = (left, right) => {
+                const NEW_INFO_LINE = jQuery('<div class="vschc-line">' + 
+                                             '<span class="vschc-left font-weight-bold text-right" />' + 
+                                             '<span class="vschc-right" />' + 
+                                             '</div>');
+                NEW_INFO_LINE.find('.vschc-left')
+                                   .text(`${ vschc_to_string(left) }:`);
+                NEW_INFO_LINE.find('.vschc-right')
+                             .text( vschc_to_string(right) );
+
+                NEW_INFO_LINE.appendTo( REQUEST_SHORT_INFO );
+            };
+
+            const REQUEST_URL = vschc_to_string(RESPONSE.request.url).trim();
+            if ('' !== REQUEST_URL) {
+                ADD_NEW_LINE('URL', REQUEST_URL);
+            }
+
+            const REQUEST_METHOD = vschc_to_string(RESPONSE.request.method).toUpperCase().trim();
+            if ('' !== REQUEST_METHOD) {
+                ADD_NEW_LINE('Method', REQUEST_METHOD);
+            }            
+
+            const EXEC_TIME = parseInt( vschc_to_string(RESPONSE.request.executionTime).trim() );
+            if (!isNaN(EXEC_TIME)) {
+                ADD_NEW_LINE('Execution time', `${ EXEC_TIME } ms`);
+            }
+
+            const START_TIME = vschc_to_string( RESPONSE.request.startTime ).trim();
+            if ('' !== START_TIME) {
+                tabTitle = `[${ moment(START_TIME).local().format('YYYY-MM-DD HH:mm:ss') }]`;
+
+                const TITLE_SUFFIXES = [];
+
+                if ('' !== REQUEST_METHOD) {
+                    TITLE_SUFFIXES.push( `[${ REQUEST_METHOD }]` );
+                }
+                
+                if ('' !== REQUEST_URL) {
+                    TITLE_SUFFIXES.push( REQUEST_URL );
+                }
+
+                if (TITLE_SUFFIXES.length > 0) {
+                    tabTitle += ' - ' + TITLE_SUFFIXES.join( ' ' ).trim();
+                }
+            }
+
+            if (REQUEST_SHORT_INFO.find('.vschc-line').length > 0) {
+                REQUEST_SHORT_INFO.appendTo( RESPONSE_OVERVIEW_BODY );
+            }            
         }
 
-        INSERT_BUTTONS();
+        RESPONSE_OVERVIEW.appendTo( CARD_BODY );
 
-        let http = `HTTP/${ RESPONSE.httpVersion } ${ RESPONSE.code } ${ RESPONSE.status }\r\n`;
-
-        let pre;
-
-        const REFRESH_HTTP = () => {
-            if (pre) {
-                pre.remove();
-            }
+        // response data
+        {
+            const RESPONSE = responseData.response;
             
-            pre = jQuery('<pre><code class="http" /></pre>');
+            const DETAILS_CARD = jQuery('<div class="card vschc-response-details">' + 
+                                        '<div class="card-header font-weight-bold">' +
+                                        '<ul class="nav nav-pills" />' + 
+                                        '</div>' + 
+                                        '<div class="card-body" />' + 
+                                        '</div>');
 
-            const CODE = pre.find('code');
-            CODE.text(http);
+            let reponseId = -1;
+            do {
+                ++reponseId;
 
-            pre.appendTo( CARD_BODY );
-            hljs.highlightBlock( CODE[0] );
-        };
+                const EXISTING_PILLS = jQuery(`#vschc-response-nav-pills-${ reponseId }`);
+                if (EXISTING_PILLS.length < 1) {
+                    break;
+                }
+            } while (true);
 
-        if (RESPONSE.headers) {
-            const MIME = vschc_get_content_type(RESPONSE.headers);
-            if ('' !== MIME) {
-                let jsonResp;
-                try {
-                    jsonResp = JSON.parse( atob( RESPONSE.body ) );
-                } catch (e) {
-                    jsonResp = false;
+            const TAB = jQuery('<div>' + 
+                               '<div class="tab-content" />' + 
+                               '</div>');
+
+            const TAB_ITEMS = DETAILS_CARD.find('.nav-pills');
+            const TAB_CONTENT = TAB.find('.tab-content');
+
+            TAB_ITEMS.attr('id', `vschc-response-nav-pills-${ reponseId }`);
+            TAB_CONTENT.attr('id', `vschc-response-nav-tab-content-${ reponseId }`);
+
+            let reponseTabId = -1;
+            const ADD_NEW_ITEM = (title, content) => {
+                ++reponseTabId;
+
+                const NEW_TAB_ID = `vschc-response-nav-tab-item-${ reponseTabId }`;
+                const NEW_TAB_PANE_ID = `vschc-response-nav-tab-pane-${ reponseTabId }`;
+
+                const NEW_TAB_ITEM = jQuery('<li class="nav-item">' + 
+                                            `<a class="nav-link" id="${ NEW_TAB_ID }" data-toggle="pill" href="#${ NEW_TAB_PANE_ID }" role="tab" aria-controls="${ NEW_TAB_PANE_ID }" aria-selected="true" />` + 
+                                            '</li>');
+                NEW_TAB_ITEM.find('a').append( title );
+
+                const NEW_TAB_PANE = jQuery(`<div class="tab-pane fade" id="${ NEW_TAB_PANE_ID }" role="tabpanel" aria-labelledby="${ NEW_TAB_ID }" />`);
+                NEW_TAB_PANE.append( content );
+
+                if (0 === reponseTabId) {
+                    NEW_TAB_ITEM.find('a').addClass('active');
+
+                    NEW_TAB_PANE.addClass('show')
+                                .addClass('active');
                 }
 
-                if (jsonResp) {
-                    contentDisplayer = () => {
-                        const JSON_PRE = jQuery('<pre><code class="json" /></pre>');
-                        const JSON_CODE = JSON_PRE.find('code');
+                NEW_TAB_PANE.appendTo( TAB_CONTENT );
+                NEW_TAB_ITEM.appendTo( TAB_ITEMS );
+            };
 
-                        JSON_CODE.text(JSON.stringify(
-                            jsonResp, null, 2
-                        ));
+            // RESPONSE
+            {
+                const HTTP_CONTENT = jQuery('<div />');
 
-                        JSON_PRE.appendTo( CARD_BODY );
-                        hljs.highlightBlock( JSON_CODE[0] );
+                const BUTTONS = [];
 
-                        suggestedExtension = 'json';
-                    };
-                } else if (vschc_is_mime(MIME, [ 'text/css' ])) {
-                    contentDisplayer = () => {
-                        const CSS = atob( RESPONSE.body );
+                let http = `HTTP/${ RESPONSE.httpVersion } ${ RESPONSE.code } ${ RESPONSE.status }\r\n`;
 
-                        const CSS_PRE = jQuery('<pre><code class="css" /></pre>');
-                        const CSS_CODE = CSS_PRE.find('code');
+                let contentDisplayer;
+                let pre;
 
-                        CSS_CODE.text(CSS);
+                const REFRESH_HTTP = () => {
+                    if (pre) {
+                        pre.remove();
+                    }
+                    
+                    pre = jQuery('<pre><code class="http" /></pre>');
 
-                        CSS_PRE.appendTo( CARD_BODY );
-                        hljs.highlightBlock( CSS_CODE[0] );
-                    };
-                } else if (vschc_is_mime(MIME, [ 'text/html' ])) {
-                    contentDisplayer = () => {
-                        const HTML = atob( RESPONSE.body );
+                    const CODE = pre.find('code');
+                    CODE.text(http);
 
-                        const HTML_PRE = jQuery('<pre><code class="html" /></pre>');
-                        const HTML_CODE = HTML_PRE.find('code');
+                    pre.appendTo( HTTP_CONTENT );
+                    hljs.highlightBlock( CODE[0] );
+                };
 
-                        HTML_CODE.text(HTML);
+                if (RESPONSE.headers) {
+                    contentDisplayer = vschc_get_http_content_displayer(
+                        RESPONSE.headers, RESPONSE.body,
+                        {
+                            contentAppender: (content) => {
+                                if (content) {
+                                    HTTP_CONTENT.append( content );
+                                }
+                            },
+                            httpAppender: (content) => {
+                                http += content;
+                            },
+                            httpRefresher: REFRESH_HTTP
+                        }
+                    );
 
-                        HTML_PRE.appendTo( CARD_BODY );
-                        hljs.highlightBlock( HTML_CODE[0] );
-                    };
-                } else if (vschc_is_mime(MIME, [ 'text/markdown' ])) {
-                    contentDisplayer = () => {
-                        const MD = atob( RESPONSE.body );
+                    for (const H in RESPONSE.headers) {
+                        http += `${H}: ${ RESPONSE.headers[H] }\r\n`;
+                    }
+                }
+                
+                http += "\r\n";
 
-                        const MD_PRE = jQuery('<pre><code class="markdown" /></pre>');
-                        const MD_CODE = MD_PRE.find('code');
+                ADD_NEW_ITEM( jQuery('<span>' + 
+                                     '<i class="fa fa-arrow-down" aria-hidden="true"></i>' + 
+                                     '<span>RESPONSE</span>' + 
+                                     '</span>'), HTTP_CONTENT);
+                
+                REFRESH_HTTP();
 
-                        MD_CODE.text(MD);
+                if (!vschc_is_empty_str(RESPONSE.body)) {
+                    if (contentDisplayer) {
+                        contentDisplayer();
+                    }
+                }
 
-                        MD_PRE.appendTo( CARD_BODY );
-                        hljs.highlightBlock( MD_CODE[0] );
-                    };
-                } else if (vschc_is_mime(MIME, [ 'text/xml' ])) {
-                    contentDisplayer = () => {
-                        const XML = atob( RESPONSE.body );
+                if (!vschc_is_empty_str(RESPONSE.body)) {
+                    const SAVE_CONTENT_BTN = jQuery('<a class="btn btn-sm btn-primary">' + 
+                                                    '<i class="fa fa-floppy-o" aria-hidden="true"></i>' + 
+                                                    '<span>Save Response Content</span>' + 
+                                                    '</a>');
+                    SAVE_CONTENT_BTN.on('click', function() {
+                        vscode.postMessage({
+                            command: 'saveContent',
+                            data: {
+                                data: RESPONSE.body,
+                                suggestedExtension: RESPONSE.suggestedExtension,
+                            }
+                        });
+                    });
 
-                        const XML_PRE = jQuery('<pre><code class="xml" /></pre>');
-                        const XML_CODE = XML_PRE.find('code');
+                    const OPEN_IN_EDITOR_BTN = jQuery('<a class="btn btn-sm btn-dark">' + 
+                                                      '<i class="fa fa-pencil-square" aria-hidden="true"></i>' + 
+                                                      '<span>Open Response In Editor</span>' + 
+                                                      '</a>');
+                    OPEN_IN_EDITOR_BTN.on('click', function() {
+                        vscode.postMessage({
+                            command: 'openReponseInEditor',
+                            data: RESPONSE
+                        });
+                    });
 
-                        XML_CODE.text(XML);
+                    BUTTONS.push( SAVE_CONTENT_BTN );
+                    BUTTONS.push( OPEN_IN_EDITOR_BTN );
+                }
 
-                        XML_PRE.appendTo( CARD_BODY );
-                        hljs.highlightBlock( XML_CODE[0] );
-                    };
-                } else if (vschc_is_mime(MIME, [ 'application/javascript', 'text/javascript' ])) {
-                    contentDisplayer = () => {
-                        const JS = atob( RESPONSE.body );
+                if (BUTTONS.length > 0) {
+                    const BTN_LIST = jQuery('<div class="vschc-button-list" />');
 
-                        const JS_PRE = jQuery('<pre><code class="javascript" /></pre>');
-                        const JS_CODE = JS_PRE.find('code');
+                    for (const B of BUTTONS) {
+                        BTN_LIST.append( B );
+                    }
 
-                        JS_CODE.text(JS);
-
-                        JS_PRE.appendTo( CARD_BODY );
-                        hljs.highlightBlock( JS_CODE[0] );
-                    };
-                } else if (vschc_is_mime(MIME, [ 'application/x-yaml', 'text/yaml' ])) {
-                    contentDisplayer = () => {
-                        const YAML = atob( RESPONSE.body );
-
-                        const YAML_PRE = jQuery('<pre><code class="yaml" /></pre>');
-                        const YAML_CODE = YAML_PRE.find('code');
-
-                        YAML_CODE.text(YAML);
-
-                        YAML_PRE.appendTo( CARD_BODY );
-                        hljs.highlightBlock( YAML_CODE[0] );
-                    };
-                } else if (MIME.startsWith('text/')) {
-                    contentDisplayer = () => {
-                        http += atob( RESPONSE.body );
-
-                        REFRESH_HTTP();
-                    };
-                } else if (MIME.startsWith('image/')) {
-                    contentDisplayer = () => {
-                        const IMG = jQuery('<img />');
-                        IMG.attr('src', `data:${ MIME };base64,${ RESPONSE.body.trim() }`);
-                        IMG.addClass( 'img-fluid' );
-
-                        IMG.appendTo( CARD_BODY );
-                    };
+                    BTN_LIST.prependTo( HTTP_CONTENT );
                 }
             }
 
-            for (const H in RESPONSE.headers) {
-                http += `${H}: ${ RESPONSE.headers[H] }\r\n`;
-            }
-        }
-        
-        http += "\r\n";
-        
-        REFRESH_HTTP();
+            // REQUEST
+            if (RESPONSE.request) {
+                const HTTP_CONTENT = jQuery('<div />');
 
-        if (!vschc_is_empty(RESPONSE.body)) {
-            if (contentDisplayer) {
-                contentDisplayer();
+                let http = `${ RESPONSE.request.method } ${ RESPONSE.request.url } HTTP/1.1\r\n`;
+
+                let contentDisplayer;
+                let pre;
+
+                const REFRESH_HTTP = () => {
+                    if (pre) {
+                        pre.remove();
+                    }
+                    
+                    pre = jQuery('<pre><code class="http" /></pre>');
+
+                    const CODE = pre.find('code');
+                    CODE.text(http);
+
+                    pre.appendTo( HTTP_CONTENT );
+                    hljs.highlightBlock( CODE[0] );
+                };
+
+                if (RESPONSE.request.headers) {
+                    contentDisplayer = vschc_get_http_content_displayer(
+                        RESPONSE.request.headers, RESPONSE.request.body,
+                        {
+                            contentAppender: (content) => {
+                                if (content) {
+                                    HTTP_CONTENT.append( content );
+                                }
+                            },
+                            httpAppender: (content) => {
+                                http += content;
+                            },
+                            httpRefresher: REFRESH_HTTP
+                        }
+                    );
+
+                    for (const H in RESPONSE.request.headers) {
+                        for (const H in RESPONSE.request.headers) {
+                            http += `${H}: ${ RESPONSE.request.headers[H] }\r\n`;
+                        }
+                    }
+                }
+
+                http += "\r\n";
+
+                ADD_NEW_ITEM( jQuery('<span>' + 
+                                     '<i class="fa fa-arrow-up" aria-hidden="true"></i>' + 
+                                     '<span>REQUEST</span>' + 
+                                     '</span>'), HTTP_CONTENT);
+
+                REFRESH_HTTP();
+
+                if (!vschc_is_empty(RESPONSE.request.body)) {
+                    if (contentDisplayer) {
+                        contentDisplayer();
+                    }
+                }
+
+                const BUTTONS = [];
+
+                if (!vschc_is_empty_str(RESPONSE.request.body)) {
+                    const OPEN_IN_EDITOR_BTN = jQuery('<a class="btn btn-sm btn-dark">' + 
+                                                      '<i class="fa fa-pencil-square" aria-hidden="true"></i>' + 
+                                                      '<span>Open Request In Editor</span>' + 
+                                                      '</a>');
+                    OPEN_IN_EDITOR_BTN.on('click', function() {
+                        vscode.postMessage({
+                            command: 'openRequestInEditor',
+                            data: RESPONSE
+                        });
+                    });
+
+                    BUTTONS.push( OPEN_IN_EDITOR_BTN );
+                }
+
+                if (BUTTONS.length > 0) {
+                    const BTN_LIST = jQuery('<div class="vschc-button-list" />');
+
+                    for (const B of BUTTONS) {
+                        BTN_LIST.append( B );
+                    }
+
+                    BTN_LIST.prependTo( HTTP_CONTENT );
+                }
             }
+
+            TAB.appendTo( DETAILS_CARD.find('.card-body') );
+
+            DETAILS_CARD.appendTo( CARD_BODY );
         }
     }
 
-    return CARD;
+    return {
+        content: CARD,
+        tab: {
+            background: tabBackground,
+            foreground: tabForeground,
+            title: tabTitle
+        }
+    };
 }
 
 function vschc_execute_script() {
@@ -450,6 +591,147 @@ function vschc_get_headers() {
     });
 
     return HEADERS;
+}
+
+function vschc_get_http_content_displayer(
+    headers, body,
+    opts
+) {
+    let contentDisplayer;
+
+    const APPEND_CONTENT = (content) => {
+        if (opts && opts.contentAppender) {
+            opts.contentAppender( content );
+        }
+    };
+
+    const APPEND_TO_HTTP = (content) => {
+        if (opts && opts.httpAppender) {
+            opts.httpAppender( content );
+        }
+    };
+
+    const REFRESH_HTTP = () => {
+        if (opts && opts.httpRefresher) {
+            httpRefresher();
+        }
+    };
+
+    if (headers && !vschc_is_empty_str(body)) {
+        const MIME = vschc_get_content_type(headers);
+        if (!vschc_is_empty_str(MIME)) {
+            let jsonResp;
+            try {
+                jsonResp = JSON.parse( atob(body) );
+            } catch (e) {
+                jsonResp = false;
+            }
+
+            if (jsonResp) {
+                contentDisplayer = () => {
+                    const JSON_PRE = jQuery('<pre><code class="json" /></pre>');
+                    const JSON_CODE = JSON_PRE.find('code');
+
+                    JSON_CODE.text(JSON.stringify(
+                        jsonResp, null, 2
+                    ));
+
+                    APPEND_CONTENT( JSON_PRE );
+                    hljs.highlightBlock( JSON_CODE[0] );
+
+                    suggestedExtension = 'json';
+                };
+            } else if (vschc_is_mime(MIME, [ 'text/css' ])) {
+                contentDisplayer = () => {
+                    const CSS = atob( body );
+
+                    const CSS_PRE = jQuery('<pre><code class="css" /></pre>');
+                    const CSS_CODE = CSS_PRE.find('code');
+
+                    CSS_CODE.text(CSS);
+
+                    APPEND_CONTENT( CSS_PRE );
+                    hljs.highlightBlock( CSS_CODE[0] );
+                };
+            } else if (vschc_is_mime(MIME, [ 'text/html' ])) {
+                contentDisplayer = () => {
+                    const HTML = atob( body );
+
+                    const HTML_PRE = jQuery('<pre><code class="html" /></pre>');
+                    const HTML_CODE = HTML_PRE.find('code');
+
+                    HTML_CODE.text(HTML);
+
+                    APPEND_CONTENT( HTML_PRE );
+                    hljs.highlightBlock( HTML_CODE[0] );
+                };
+            } else if (vschc_is_mime(MIME, [ 'text/markdown' ])) {
+                contentDisplayer = () => {
+                    const MD = atob( body );
+
+                    const MD_PRE = jQuery('<pre><code class="markdown" /></pre>');
+                    const MD_CODE = MD_PRE.find('code');
+
+                    MD_CODE.text(MD);
+
+                    APPEND_CONTENT( MD_PRE );
+                    hljs.highlightBlock( MD_CODE[0] );
+                };
+            } else if (vschc_is_mime(MIME, [ 'text/xml' ])) {
+                contentDisplayer = () => {
+                    const XML = atob( body );
+
+                    const XML_PRE = jQuery('<pre><code class="xml" /></pre>');
+                    const XML_CODE = XML_PRE.find('code');
+
+                    XML_CODE.text(XML);
+
+                    APPEND_CONTENT( XML_PRE );
+                    hljs.highlightBlock( XML_CODE[0] );
+                };
+            } else if (vschc_is_mime(MIME, [ 'application/javascript', 'text/javascript' ])) {
+                contentDisplayer = () => {
+                    const JS = atob( body );
+
+                    const JS_PRE = jQuery('<pre><code class="javascript" /></pre>');
+                    const JS_CODE = JS_PRE.find('code');
+
+                    JS_CODE.text(JS);
+
+                    APPEND_CONTENT( JS_PRE );
+                    hljs.highlightBlock( JS_CODE[0] );
+                };
+            } else if (vschc_is_mime(MIME, [ 'application/x-yaml', 'text/yaml' ])) {
+                contentDisplayer = () => {
+                    const YAML = atob( body );
+
+                    const YAML_PRE = jQuery('<pre><code class="yaml" /></pre>');
+                    const YAML_CODE = YAML_PRE.find('code');
+
+                    YAML_CODE.text(YAML);
+
+                    APPEND_CONTENT( JS_PRE );
+                    hljs.highlightBlock( YAML_CODE[0] );
+                };
+            } else if (MIME.startsWith('text/')) {
+                contentDisplayer = () => {
+                    APPEND_TO_HTTP( atob( body ) );
+
+                    REFRESH_HTTP();
+                };
+            } else if (MIME.startsWith('image/')) {
+                contentDisplayer = () => {
+                    const IMG = jQuery('<img />');
+                    IMG.attr('src', `data:${ MIME };base64,${ body.trim() }`);
+                    IMG.addClass( 'img-fluid' );
+
+                    APPEND_CONTENT( IMG );
+                };
+            }
+        }
+    }
+
+    return contentDisplayer;
 }
 
 function vschc_prepare_request() {
@@ -843,7 +1125,7 @@ jQuery(() => {
                         }
                     });
 
-                    if (NEW_RESPONSE_CARD) {
+                    if (NEW_RESPONSE_CARD.content) {
                         let tab = CARD_BODY.find('#vschc-response-tab');
                         if (tab.length < 1) {
                             CARD_BODY.html('');
@@ -856,7 +1138,7 @@ jQuery(() => {
                             tab.appendTo( CARD_BODY );
                         }
 
-                        const EXISTING_TAB_PANES = tab.find('.tab-content .tab-pane');
+                        const EXISTING_TAB_PANES = tab.find('.vschc-response-card-entry');
                         EXISTING_TAB_PANES.each(function() {
                             const P = jQuery(this);
 
@@ -874,9 +1156,17 @@ jQuery(() => {
                                                     '</li>');
                         const NEW_NAV_ITEM_LINK = NEW_NAV_ITEM.find('a.nav-link');
                         NEW_NAV_ITEM_LINK.find('span.vschc-title').text(`Response #${NEXT_ID + 1}`);
+                        
+                        if (NEW_RESPONSE_CARD.tab.background) {
+                            NEW_NAV_ITEM.find('a.nav-link').addClass( NEW_RESPONSE_CARD.tab.background );
+                        }
+                        if (NEW_RESPONSE_CARD.tab.foreground) {
+                            NEW_NAV_ITEM.find('a.nav-link').addClass( NEW_RESPONSE_CARD.tab.foreground );
+                        }
+                        NEW_NAV_ITEM.attr('title', NEW_RESPONSE_CARD.tab.title);
 
                         const NEW_TAB_PANE = jQuery(`<div class="tab-pane vschc-response-tab-pane" id="${ TAB_PANE_ID }" role="tabpanel" aria-labelledby="${ TAB_ITEM_ID }" />`);
-                        NEW_TAB_PANE.append( NEW_RESPONSE_CARD );
+                        NEW_TAB_PANE.append( NEW_RESPONSE_CARD.content );
 
                         tab.find('.nav-tabs').prepend( NEW_NAV_ITEM );
                         tab.find('.tab-content').prepend( NEW_TAB_PANE );

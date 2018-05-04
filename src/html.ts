@@ -135,6 +135,7 @@ export function generateHeader(opts: GenerateHeaderOptions) {
         <link rel="stylesheet" href="${ opts.getResourceUri('css/bootstrap.min.css') }">
         <link rel="stylesheet" href="${ opts.getResourceUri('css/select2.min.css') }">
 
+        <script src="${ opts.getResourceUri('js/moment-with-locales.min.js') }"></script>
         <script src="${ opts.getResourceUri('js/highlight.pack.js') }"></script>
         <script src="${ opts.getResourceUri('js/jquery.min.js') }"></script>
         <script src="${ opts.getResourceUri('js/bootstrap.bundle.min.js') }"></script>
