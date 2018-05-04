@@ -76,6 +76,7 @@ Press `F1` and enter one of the following commands:
 | ---- | --------- | --------- |
 | `HTTP Client: Create new script ...` | Opens a new editor with an example script. | `extension.http.client.newRequestScript` |
 | `HTTP Client: New HTTP request ...` | Opens a new HTTP request form. | `extension.http.client.newRequest` |
+| `HTTP Client: New HTTP request (split view)...` | Opens a new HTTP request form by splitting the current view. | `extension.http.client.newRequestSplitView` |
 | `HTTP Client: Send editor content as HTTP request ...` | Uses the content of a visible editor as body for a HTTP request. | `extension.http.client.newRequestForEditor` |
 | `HTTP Client: Send file as HTTP request ...` | Uses a (local) file as body for a HTTP request. | `extension.http.client.newRequestFromFile` |
 
@@ -263,9 +264,10 @@ await REQUEST.send();
 Returns a new instance of a [Moment.js](https://momentjs.com/) object, by using an optional parameter for the [timezone](https://momentjs.com/timezone/).
 
 ```javascript
-const CURRENT_TIME               = now();
+const CURRENT_TIME = now();
 console.log( CURRENT_TIME.format('YYYY-MM-DD HH:mm:ss') );
 
+// with timezone
 const CURRENT_TIME_WITH_TIMEZONE = now('Europe/Berlin');
 console.log( CURRENT_TIME_WITH_TIMEZONE.format('DD.MM.YYYY HH:mm') );
 ```
@@ -305,7 +307,7 @@ console.log( UTC_NOW.format('YYYY-MM-DD HH:mm:ss') );
 | `$moment` | [Moment.js](https://momentjs.com/) | Parse, validate, manipulate, and display dates and times in JavaScript. [moment-timezone](https://momentjs.com/timezone/) is already provided. |
 | `$vs` | [Visual Studio Code](https://code.visualstudio.com/docs/extensionAPI/vscode-api) | VS Code API. |
 
-You also can include any module, shipped with VS Code, [Node.js](https://nodejs.org/api/modules.html) [that extension](https://github.com/mkloubert/vscode-http-client/blob/master/package.json) or any external script, which is available on your current system, by using the `require()` function.
+You also can include any module, shipped with VS Code, [Node.js](https://nodejs.org/api/modules.html), [that extension](https://github.com/mkloubert/vscode-http-client/blob/master/package.json) or any external script, which is available on your current system, by using the `require()` function.
 
 ## Syntaxes [[&uarr;](#table-of-contents)]
 
