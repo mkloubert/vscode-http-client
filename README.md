@@ -35,6 +35,7 @@ Simple way to do [HTTP requests](https://en.wikipedia.org/wiki/Hypertext_Transfe
 3. [Syntaxes](#syntaxes-)
 4. [Support and contribute](#support-and-contribute-)
 5. [Related projects](#related-projects-)
+   * [node-enumerable](#node-enumerable-)
    * [vscode-helpers](#vscode-helpers-)
 
 ## Install [[&uarr;](#table-of-contents)]
@@ -336,6 +337,10 @@ To work with the code:
 * make a [pull request](https://github.com/mkloubert/vscode-http-client/pulls)
 
 ## Related projects [[&uarr;](#table-of-contents)]
+
+### node-enumerable [[&uarr;](#related-projects-)]
+
+[node-enumerable](https://github.com/mkloubert/node-enumerable) is a [LINQ](https://en.wikipedia.org/wiki/Language_Integrated_Query) implementation for JavaScript, which runs in [Node.js](https://nodejs.org/) and browsers.
 
 ### vscode-helpers [[&uarr;](#related-projects-)]
 
