@@ -300,6 +300,10 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
             const COMPLETED = async (err: any, result?: SendHTTPRequestResult) => {
                 const END_TIME = Moment.utc();
 
+                if (result) {
+                    result.executionTime = END_TIME.diff(START_TIME, 'milliseconds');
+                }
+
                 if (completedInvoked) {
                     return;
                 }
@@ -309,10 +313,6 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
                     for (const L of vscode_helpers.toArray(ME._onDidSend)) {
                         await Promise.resolve( L(err, result) );
                     }
-                }
-
-                if (result) {
-                    result.executionTime = END_TIME.diff(START_TIME, 'milliseconds');
                 }
 
                 if (err) {
