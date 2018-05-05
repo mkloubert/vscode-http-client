@@ -65,6 +65,11 @@ export interface IHTTPRequest extends vscode.Disposable {
     readonly postMessage: (command: string, data?: any) => PromiseLike<boolean>;
 }
 
+interface OpenContentData {
+    data: string;
+    suggestedExtension: string | false;
+}
+
 /**
  * Request data.
  */
@@ -677,6 +682,10 @@ export class HTTPRequest extends HTTPRequestBase {
                 }
                 break;
 
+            case 'openReponseContentInApp':
+                await this.openReponseContentInApp(msg.data);
+                break;
+
             case 'openReponseInEditor':
                 await this.openReponseInEditor(msg.data);
                 break;
@@ -853,6 +862,49 @@ export class HTTPRequest extends HTTPRequestBase {
                 return this.getResourceUri(path);
             },
             name: 'http-request',
+        });
+    }
+
+    private async openReponseContentInApp(data: OpenContentData) {
+        let extension = data.suggestedExtension;
+        if (false === extension) {
+            extension = '';
+        }
+        extension = vscode_helpers.normalizeString(extension);
+        if ('' === extension) {
+            extension = 'txt';
+        }
+
+        await vscode_helpers.tempFile(async (tempFile) => {
+            let tryDeleteTempFile = true;
+
+            try {
+                await vschc.confirm(async (yes) => {
+                    if (!yes) {
+                        return;
+                    }
+
+                    const DATA = new Buffer(data.data, 'base64');
+
+                    await FSExtra.writeFile(tempFile, DATA);
+
+                    await vschc.exec(tempFile);
+
+                    tryDeleteTempFile = false;
+                }, `The file will be opened / executed as '${ tempFile }'. Are you sure to do that?`);
+            } finally {
+                if (tryDeleteTempFile) {
+                    try {
+                        if (await vscode_helpers.isFile( tempFile )) {
+                            await FSExtra.unlink( tempFile );
+                        }
+                    } catch { }
+                }
+            }
+        }, {
+            keep: true,
+            prefix: 'vschc-',
+            suffix: '.' + extension,
         });
     }
 

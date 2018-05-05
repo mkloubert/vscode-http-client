@@ -268,7 +268,7 @@ function vschc_create_response_content(responseData, whenClosed) {
 
             const START_TIME = vschc_to_string( RESPONSE.request.startTime ).trim();
             if ('' !== START_TIME) {
-                tabTitle = `[${ moment(START_TIME).local().format('YYYY-MM-DD HH:mm:ss') }]`;
+                tabTitle = `[${ moment(START_TIME).local().format('HH:mm:ss  YYYY-MM-DD') }]`;
 
                 const TITLE_SUFFIXES = [];
 
@@ -330,12 +330,12 @@ function vschc_create_response_content(responseData, whenClosed) {
                 const NEW_TAB_ID = `vschc-response-nav-tab-item-${ reponseId }-${ reponseTabId }`;
                 const NEW_TAB_PANE_ID = `vschc-response-nav-tab-pane-${ reponseId }-${ reponseTabId }`;
 
-                const NEW_TAB_ITEM = jQuery('<li class="nav-item">' + 
+                const NEW_TAB_ITEM = jQuery('<li class="nav-item vschc-response-nav-tab-item">' + 
                                             `<a class="nav-link" id="${ NEW_TAB_ID }" data-toggle="pill" href="#${ NEW_TAB_PANE_ID }" aria-controls="${ NEW_TAB_PANE_ID }" />` + 
                                             '</li>');
                 NEW_TAB_ITEM.find('a').append( title );
 
-                const NEW_TAB_PANE = jQuery(`<div class="tab-pane active" id="${ NEW_TAB_PANE_ID }" role="tabpanel" aria-labelledby="${ NEW_TAB_ID }" />`);
+                const NEW_TAB_PANE = jQuery(`<div class="tab-pane active vschc-response-nav-tab-pane" id="${ NEW_TAB_PANE_ID }" role="tabpanel" aria-labelledby="${ NEW_TAB_ID }" />`);
                 NEW_TAB_PANE.append( content );
 
                 NEW_TAB_PANE.appendTo( TAB_CONTENT );
@@ -433,8 +433,22 @@ function vschc_create_response_content(responseData, whenClosed) {
                         });
                     });
 
+                    const OPEN_IN_APP_BTN = jQuery('<a class="btn btn-sm btn-warning" title="Open Response Content As File In App">' + 
+                                                   '<i class="fa fa-external-link" aria-hidden="true"></i>' + 
+                                                   '</a>');
+                    OPEN_IN_APP_BTN.on('click', function() {
+                        vscode.postMessage({
+                            command: 'openReponseContentInApp',
+                            data: {
+                                data: RESPONSE.body,
+                                suggestedExtension: RESPONSE.suggestedExtension,
+                            }
+                        });
+                    });
+
                     BUTTONS.push( SAVE_CONTENT_BTN );
                     BUTTONS.push( OPEN_IN_EDITOR_BTN );
+                    BUTTONS.push( OPEN_IN_APP_BTN );
                 }
 
                 if (BUTTONS.length > 0) {
@@ -1113,6 +1127,14 @@ jQuery(() => {
 
                     let onCardClosed;
 
+                    let scrollToAction = () => {
+                        const SEND_BTN = jQuery('#vschc-send-request');
+
+                        jQuery(document).scrollTop(
+                            SEND_BTN.offset().top - SEND_BTN.outerHeight(true) - 24
+                        );
+                    };
+
                     const NEW_RESPONSE_CARD = vschc_create_response_content(RESPONSE_DATA, () => {
                         if (onCardClosed) {
                             onCardClosed();
@@ -1168,6 +1190,21 @@ jQuery(() => {
 
                         NEW_NAV_ITEM.find('a').tab('show');
 
+                        const DETAILS_NAV_ITEMS = NEW_TAB_PANE.find('.vschc-response-nav-tab-item a');
+                        if (DETAILS_NAV_ITEMS.length > 1) {
+                            const OLD_SCROLL_ACTION = scrollToAction;
+
+                            scrollToAction = () => {
+                                jQuery(DETAILS_NAV_ITEMS[1]).tab('show');
+
+                                setTimeout(() => {
+                                    jQuery(DETAILS_NAV_ITEMS[0]).tab('show');
+
+                                    OLD_SCROLL_ACTION();
+                                }, 250);
+                            };                            
+                        }
+
                         onCardClosed = () => {
                             const CURRENT_INDEX = NEW_NAV_ITEM.index();
 
@@ -1192,10 +1229,9 @@ jQuery(() => {
 
                     vschc_update_response_button_states(true);
 
-                    const SEND_BTN = jQuery('#vschc-send-request');
-                    jQuery(document).scrollTop(
-                        SEND_BTN.offset().top - SEND_BTN.outerHeight(true) - 24
-                    );
+                    if (scrollToAction) {
+                        scrollToAction();
+                    }
                 }
                 break;
 

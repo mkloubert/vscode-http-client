@@ -18,6 +18,7 @@
  */
 
 import * as _ from 'lodash';
+import * as ChildProcess from 'child_process';
 import * as FSExtra from 'fs-extra';
 const MergeDeep = require('merge-deep');
 import * as MimeTypes from 'mime-types';
@@ -29,6 +30,20 @@ import * as vschc_workspaces from './workspaces';
 import * as vscode from 'vscode';
 import * as vscode_helpers from 'vscode-helpers';
 
+
+/**
+ * A result of a 'exec()' function call.
+ */
+export interface ExecResult {
+    /**
+     * The standard error content.
+     */
+    stdErr: string;
+    /**
+     * The standard output.
+     */
+    stdOut: string;
+}
 
 /**
  * Describes the structure of the package file of that extenstion.
@@ -529,6 +544,32 @@ export async function deactivate() {
     } catch {  }
 }
 
+/**
+ * Executes a file / command.
+ *
+ * @param {string} command The command to execute.
+ *
+ * @return {Promise<ExecResult>} The promise with the result.
+ */
+export function exec(command: string): Promise<ExecResult> {
+    command = vscode_helpers.toStringSafe(command);
+
+    return new Promise<ExecResult>((resolve, reject) => {
+        const COMPLETED = vscode_helpers.createCompletedAction(resolve, reject);
+
+        try {
+            ChildProcess.exec(command, (err, stdout, stderr) => {
+                COMPLETED(err, {
+                    stdErr: stderr,
+                    stdOut: stdout,
+                });
+            });
+        } catch (e) {
+            COMPLETED(e);
+        }
+    });
+}
+
 async function getDefaultUriForDialogs() {
     let uri: vscode.Uri;
 
@@ -749,7 +790,7 @@ async function updateLastKnownDefaultUriForDialogs(uri: vscode.Uri) {
             try {
                 await extension.workspaceState.update(KEY_LAST_KNOWN_DEFAULT_URI,
                                                       uri.fsPath);
-            } catch {  }
+            } catch { }
         }
     } catch { }
 }
