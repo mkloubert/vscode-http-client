@@ -20,6 +20,7 @@
 import * as _ from 'lodash';
 import * as ChildProcess from 'child_process';
 import * as FSExtra from 'fs-extra';
+import * as Marked from 'marked';
 const MergeDeep = require('merge-deep');
 import * as MimeTypes from 'mime-types';
 import * as Moment from 'moment';
@@ -87,6 +88,7 @@ let extension: vscode.ExtensionContext;
  */
 export const IS_UNSET = Symbol('IS_UNSET');
 const KEY_CURRENT_STYLE = 'vschcCurrentStyle';
+const KEY_LAST_KNOWN_VERSION = 'vschcLastKnownVersion';
 let isDeactivating = false;
 const KEY_LAST_KNOWN_DEFAULT_URI = 'vschcLastKnownDefaultUri';
 let outputChannel: vscode.OutputChannel;
@@ -208,7 +210,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
                         return {
                             action: async () => {
-                                await extension.workspaceState.update(
+                                await extension.globalState.update(
                                     KEY_CURRENT_STYLE,
                                     sf.value,
                                 );
@@ -587,10 +589,71 @@ for (let i = 0; i < USERS.length; i++) {
         } catch {  }
     });
 
+    // show CHANGELOG
+    WF.next(async () => {
+        let versionToUpdate: string | false = false;
+
+        try {
+            if (packageFile) {
+                const VERSION = vscode_helpers.normalizeString( packageFile.version );
+                if ('' !== VERSION) {
+                    const LAST_VERSION = vscode_helpers.normalizeString(
+                        extension.globalState.get(KEY_LAST_KNOWN_VERSION, '')
+                    );
+                    if (LAST_VERSION !== VERSION) {
+                        const CHANGELOG_FILE = Path.resolve(
+                            Path.join(__dirname, 'CHANGELOG.md')
+                        );
+
+                        if (await vscode_helpers.isFile(CHANGELOG_FILE)) {
+                            const MARKDOWN = await FSExtra.readFile(CHANGELOG_FILE, 'utf8');
+
+                            let changeLogView: vscode.WebviewPanel;
+                            try {
+                                changeLogView = vscode.window.createWebviewPanel(
+                                    'vscodeHTTPClientScriptChangelog',
+                                    'HTTP Client ChangeLog',
+                                    vscode.ViewColumn.One,
+                                    {
+                                        enableCommandUris: false,
+                                        enableFindWidget: false,
+                                        enableScripts: false,
+                                        retainContextWhenHidden: true,
+                                    }
+                                );
+
+                                changeLogView.webview.html = Marked(MARKDOWN, {
+                                    breaks: true,
+                                    gfm: true,
+                                    mangle: true,
+                                    silent: true,
+                                    tables: true,
+                                    sanitize: true,
+                                });
+                            } catch (e) {
+                                vscode_helpers.tryDispose( changeLogView );
+
+                                throw e;
+                            }
+                        }
+
+                        versionToUpdate = VERSION;
+                    }
+                }
+            }
+        } catch {
+        } finally {
+            try {
+                if (false !== versionToUpdate) {
+                    await extension.globalState.update(KEY_LAST_KNOWN_VERSION,
+                                                       versionToUpdate);
+                }
+            } catch { }
+        }
+    });
+
     if (!isDeactivating) {
-        WF.start().then(() => {}, (err) => {
-            showError(err);
-        });
+        await WF.start();
     }
 }
 
@@ -674,7 +737,7 @@ export function getContext(): vscode.ExtensionContext {
  */
 export function getCurrentStyle(): string | false {
     let value = vscode_helpers.toStringSafe(
-        extension.workspaceState.get(KEY_CURRENT_STYLE, '')
+        extension.globalState.get(KEY_CURRENT_STYLE, '')
     );
     if (!vscode_helpers.isEmptyString(value)) {
         value = Path.resolve(
