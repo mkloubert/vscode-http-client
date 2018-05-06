@@ -43,6 +43,14 @@ interface ExecuteScriptResult {
  */
 export interface IHTTPRequest extends vscode.Disposable {
     /**
+     * Applies request settings to the view.
+     *
+     * @param {RequestData} requestData The data to apply.
+     *
+     * @return {Promise<boolean>} The promise that indicates if operation was successful or not.
+     */
+    readonly applyRequest: (requestData: RequestData) => PromiseLike<boolean>;
+    /**
      * Gets the ID of that instance.
      */
     readonly id: any;
@@ -175,6 +183,10 @@ export interface StartNewRquestOptions {
      */
     isBodyContentReadOnly?: boolean;
     /**
+     * An optional callback, that is invoked after page of webview has been loaded.
+     */
+    onLoaded?: () => void | PromiseLike<void>;
+    /**
      * Display options for the tab of the underlying view.
      */
     showOptions?: vscode.ViewColumn;
@@ -210,8 +222,8 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
      */
     protected _html: string | false = false;
     private _panel: vscode.WebviewPanel;
-    private _resourceRoot: string;
     private _startOptions: StartNewRquestOptions;
+    private _styleChangedListener: (uri: vscode.Uri) => void;
 
     /**
      * Initializes a new instance of that class.
@@ -220,6 +232,13 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
         super();
 
         this.id = `${nextHTTPRequestId++}\n${ UUID.v4() }`;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public async applyRequest(requestData: RequestData) {
+        return this.postMessage('applyRequest', requestData);
     }
 
     /**
@@ -232,11 +251,25 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
     public getResourceUri(p: string): vscode.Uri {
         p = vscode_helpers.toStringSafe(p);
 
-        return vscode.Uri.file(
-            Path.join(this._resourceRoot, p)
-        ).with({
-            scheme: 'vscode-resource'
-        });
+        let u: vscode.Uri;
+
+        for (const R of vschc.getWebViewResourceUris()) {
+            const PATH_TO_CHECK = Path.resolve(
+                Path.join(R.fsPath, p)
+            );
+
+            u = vscode.Uri.file( PATH_TO_CHECK ).with({
+                scheme: 'vscode-resource'
+            });
+
+            try {
+                if (vscode_helpers.isFileSync(PATH_TO_CHECK)) {
+                    break;
+                }
+            } catch { }
+        }
+
+        return u;
     }
 
     /**
@@ -248,11 +281,23 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
      * Initializes the request.
      */
     public async initialize() {
-        this._resourceRoot = Path.join(__dirname, './res');
+        const ME = this;
 
-        this._html = '';
+        ME._html = '';
 
-        await this.onInitialize();
+        ME._styleChangedListener = (uri) => {
+            const RES_URI = `${ uri }`;
+
+            ME.postMessage('styleChanged',
+                           RES_URI);
+        };
+
+        vscode_helpers.EVENTS.addListener(
+            vschc.EVENT_STYLE_CHANGED,
+            ME._styleChangedListener
+        );
+
+        await ME.onInitialize();
     }
 
     /**
@@ -313,6 +358,13 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
      * Is invoked after the underlying panel has been disposed.
      */
     protected async onDidDispose() {
+        super.onDispose();
+
+        vscode_helpers.tryRemoveListener(
+            vscode_helpers.EVENTS,
+            vschc.EVENT_STYLE_CHANGED, this._styleChangedListener
+        );
+
         removeRequest(this);
     }
 
@@ -363,6 +415,14 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
     }
 
     /**
+     * Gets the root directories for the web view's resources.
+     */
+    public get resourceRoots(): string[] {
+        return vschc.getWebViewResourceUris()
+                    .map(u => u.fsPath);
+    }
+
+    /**
      * Shows an error.
      *
      * @param {any} err The error to show.
@@ -408,9 +468,7 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
                 {
                     enableScripts: true,
                     retainContextWhenHidden: true,
-                    localResourceRoots: [
-                        vscode.Uri.file( ME._resourceRoot ),
-                    ]
+                    localResourceRoots: vschc.getWebViewResourceUris(),
                 }
             );
 
@@ -472,6 +530,21 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
  * A HTTP request.
  */
 export class HTTPRequest extends HTTPRequestBase {
+    private async cloneRequest(request: RequestData) {
+        let newRequest: IHTTPRequest;
+        try {
+            newRequest = await startNewRequest({
+                onLoaded: async () => {
+                    await newRequest.applyRequest(request);
+                }
+            });
+        } catch (e) {
+            vscode_helpers.tryDispose( newRequest );
+
+            throw e;
+        }
+    }
+
     private createHTTPFromResponse(response: SendRequestResponse) {
         let http = `HTTP/${ response.httpVersion } ${ response.code } ${ response.status }\r\n`;
 
@@ -529,6 +602,9 @@ export class HTTPRequest extends HTTPRequestBase {
                             await vschc_scripts.executeScript({
                                 cancelToken: cancelToken,
                                 code: DOC.getText(),
+                                getResourceUri: (p) => {
+                                    return ME.getResourceUri(p);
+                                },
                                 handler: ME,
                                 onDidSend: async (err: any, result?: vschc_http.SendHTTPRequestResult) => {
                                     await ME.sendRequestCompleted(err, result);
@@ -536,6 +612,7 @@ export class HTTPRequest extends HTTPRequestBase {
                                 output: vschc.getOutputChannel(),
                                 progress: progress,
                                 request: request,
+                                webResourceRoots: ME.resourceRoots,
                             });
                         });
                     } catch (e) {
@@ -586,7 +663,7 @@ export class HTTPRequest extends HTTPRequestBase {
                         }
                     }
 
-                    await this.postMessage('importRequestCompleted', REQUEST);
+                    await this.importRequestCompleted(REQUEST);
                 }
             }
         }, {
@@ -595,6 +672,10 @@ export class HTTPRequest extends HTTPRequestBase {
             },
             openLabel: "Import Request",
         });
+    }
+
+    private async importRequestCompleted(request: RequestData) {
+        return this.applyRequest(request);
     }
 
     private async loadBodyContent() {
@@ -616,6 +697,10 @@ export class HTTPRequest extends HTTPRequestBase {
      */
     protected async onDidReceiveMessage(msg: WebViewMessage) {
         switch (msg.command) {
+            case 'cloneRequest':
+                await this.cloneRequest( msg.data );
+                break;
+
             case 'executeScript':
                 await this.executeScript( msg.data );
                 break;
@@ -679,6 +764,10 @@ export class HTTPRequest extends HTTPRequestBase {
                     }
 
                     await this.postMessage('findInitialControlToFocus');
+
+                    if (this.startOptions.onLoaded) {
+                        await Promise.resolve( this.startOptions.onLoaded() );
+                    }
                 }
                 break;
 
@@ -855,6 +944,10 @@ export class HTTPRequest extends HTTPRequestBase {
 
 <a class="btn btn-secondary btn-sm" id="vschc-export-request-btn" title="Save Request Settings To File">
     <i class="fa fa-pencil-square-o text-dark" aria-hidden="true"></i>
+</a>
+
+<a class="btn btn-primary btn-sm" id="vschc-clone-request-btn" title="Clone The Settings Of That Request">
+    <i class="fa fa-clone" aria-hidden="true"></i>
 </a>
 `;
             },

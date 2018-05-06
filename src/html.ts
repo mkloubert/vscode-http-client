@@ -15,7 +15,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+import * as Path from 'path';
+import * as vschc from './extension';
 import * as vscode from 'vscode';
+import * as vscode_helpers from 'vscode-helpers';
 
 
 /**
@@ -105,9 +108,24 @@ export interface ResourceUriResolver {
  * @return {string} The generated HTML code.
  */
 export function generateFooter(opts: GenerateFooterOptions) {
+    let customStyle: vscode.Uri | false = false;
+    try {
+        const CUSTOM_CSS_FILE = Path.resolve(
+            Path.join(vschc.getUsersExtensionDir(), 'custom.css')
+        );
+
+        if (vscode_helpers.isFileSync( CUSTOM_CSS_FILE )) {
+            customStyle = vscode.Uri.file( CUSTOM_CSS_FILE ).with({
+                scheme: 'vscode-resource'
+            });
+        }
+    } catch { }
+
     return `
     <link rel="stylesheet" href="${ opts.getResourceUri('css/style.css') }">
     <link rel="stylesheet" href="${ opts.getResourceUri('css/' + opts.styleFile + '.css') }">
+
+${ !customStyle ? '' : `<link rel="stylesheet" href="${ customStyle }">` }
 
     <script src="${ opts.getResourceUri('js/script.js') }"></script>
     <script src="${ opts.getResourceUri('js/' + opts.scriptFile + '.js') }"></script>
@@ -123,6 +141,10 @@ export function generateFooter(opts: GenerateFooterOptions) {
  * @return {string} The generated HTML code.
  */
 export function generateHeader(opts: GenerateHeaderOptions) {
+    const STYLE = vschc.getCurrentStyleUri(
+        opts.getResourceUri
+    );
+
     return `<!doctype html>
 <html lang="en">
     <head>
@@ -132,7 +154,7 @@ export function generateHeader(opts: GenerateHeaderOptions) {
 
         <link rel="stylesheet" href="${ opts.getResourceUri('css/font-awesome.css') }">
         <link rel="stylesheet" href="${ opts.getResourceUri('css/hljs-atom-one-dark.css') }">
-        <link rel="stylesheet" href="${ opts.getResourceUri('css/bootstrap.min.css') }">
+        <link rel="stylesheet" href="${ STYLE }" vschc-style="bootstrap">
         <link rel="stylesheet" href="${ opts.getResourceUri('css/select2.min.css') }">
 
         <script src="${ opts.getResourceUri('js/moment-with-locales.min.js') }"></script>

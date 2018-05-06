@@ -24,17 +24,23 @@ Simple way to do [HTTP requests](https://en.wikipedia.org/wiki/Hypertext_Transfe
          * [progress](#progress-)
        * [Functions](#functions-)
          * [alert](#alert-)
+         * [decode_html](#decode_html-)
+         * [encode_html](#encode_html-)
          * [from](#from-)
          * [guid](#guid-)
          * [new_request](#new_request-)
          * [now](#now-)
+         * [open_html](#open_html-)
+         * [open_markdown](#open_markdown-)
          * [sleep](#sleep-)
          * [uuid](#uuid-)
          * [utc](#utc-)
        * [Modules](#modules-)
-3. [Syntaxes](#syntaxes-)
-4. [Support and contribute](#support-and-contribute-)
-5. [Related projects](#related-projects-)
+3. [Customizations](#customizations-)
+   * [CSS](#css-)
+4. [Syntaxes](#syntaxes-)
+5. [Support and contribute](#support-and-contribute-)
+6. [Related projects](#related-projects-)
    * [node-enumerable](#node-enumerable-)
    * [vscode-helpers](#vscode-helpers-)
 
@@ -74,6 +80,7 @@ Press `F1` and enter one of the following commands:
 
 | Name | Description | command |
 | ---- | --------- | --------- |
+| `HTTP Client: Change style ...` | Changes the CSS style for request forms. | `extension.http.client.changeStyle` |
 | `HTTP Client: Create new script ...` | Opens a new editor with an example script. | `extension.http.client.newRequestScript` |
 | `HTTP Client: New HTTP request ...` | Opens a new HTTP request form. | `extension.http.client.newRequest` |
 | `HTTP Client: New HTTP request (split view)...` | Opens a new HTTP request form by splitting the current view. | `extension.http.client.newRequestSplitView` |
@@ -210,6 +217,42 @@ switch (await alert('Sure?', 'NO!', 'Yes')) {
 }
 ```
 
+###### decode_html [[&uarr;](#constants-)]
+
+Decodes the entities in a HTML string.
+
+```javascript
+let encodedStr = '&lt;strong&gt;This is a test!&lt;/strong&gt;';
+
+// all entities
+decode_html(encodedStr);  // '<strong>This is a test!</strong>'
+
+// HTML 4
+decode_html(encodedStr, '4');
+// HTML 5
+decode_html(encodedStr, '5');
+// XML
+decode_html(encodedStr, 'xml');
+```
+
+###### encode_html [[&uarr;](#constants-)]
+
+Encodes a string to HTML entities.
+
+```javascript
+let strToEncode = '<strong>This is a test!</strong>';
+
+// all entities
+encode_html(strToEncode);  // '&lt;strong&gt;This is a test!&lt;/strong&gt;'
+
+// HTML 4
+encode_html(strToEncode, '4');
+// HTML 5
+encode_html(strToEncode, '5');
+// XML
+encode_html(strToEncode, 'xml');
+```
+
 ###### from [[&uarr;](#functions-)]
 
 Creates a new [LINQ style](https://en.wikipedia.org/wiki/Language_Integrated_Query) iterator for any iterable object, like arrays, generators or strings. For more information, s. [node-enumerable](https://github.com/mkloubert/node-enumerable).
@@ -269,6 +312,101 @@ const CURRENT_TIME_WITH_TIMEZONE = now('Europe/Berlin');
 console.log( CURRENT_TIME_WITH_TIMEZONE.format('DD.MM.YYYY HH:mm') );
 ```
 
+###### open_html [[&uarr;](#constants-)]
+
+Opens a new [HTML tab](https://code.visualstudio.com/docs/extensionAPI/vscode-api#WebviewPanel).
+
+```javascript
+let htmlCode = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+
+    <script>
+
+    const vscode = acquireVsCodeApi();
+
+    </script>
+  </head>
+
+  <body>
+    <div>Hello, TM!</div>
+  </body>
+</html>`;
+
+// the function returns the underlying webview
+// s. https://code.visualstudio.com/docs/extensionAPI/vscode-api#WebviewPanel
+html(htmlCode);
+
+// with custom title
+html(htmlCode, 'My HTML document');
+```
+
+SECURITY HINT: The new tab is opened with the following settings:
+
+```json
+{
+    enableCommandUris: true,
+    enableFindWidget: true,
+    enableScripts: true,
+    retainContextWhenHidden: true,
+}
+```
+
+###### open_markdown [[&uarr;](#constants-)]
+
+Opens a new [HTML tab](https://code.visualstudio.com/docs/extensionAPI/vscode-api#WebviewPanel) with parsed [Markdown](https://en.wikipedia.org/wiki/Markdown) content.
+
+```javascript
+let markdownCode = `# Header 1
+
+## Header 2
+
+Lorem ipsum dolor sit amet.
+`;
+
+// the function returns the underlying webview
+// s. https://code.visualstudio.com/docs/extensionAPI/vscode-api#WebviewPanel
+md(markdownCode);
+
+// with custom title
+md(markdownCode, 'My Markdown document');
+
+// with custom, optional title and CSS
+md(markdownCode, {
+    css: `
+body {
+  background-color: red;
+}
+`,
+    title: 'My Markdown document'
+});
+```
+
+The parser uses the following [settings](https://marked.js.org/):
+
+```json
+{
+    breaks: true,
+    gfm: true,
+    mangle: true,
+    silent: true,
+    tables: true,
+    sanitize: true,
+}
+```
+
+SECURITY HINT: The new tab is opened with the following settings:
+
+```json
+{
+    enableCommandUris: false,
+    enableFindWidget: false,
+    enableScripts: true,
+    retainContextWhenHidden: true,
+}
+```
+
 ###### sleep [[&uarr;](#functions-)]
 
 Waits a number of seconds before continue.
@@ -300,24 +438,23 @@ console.log( UTC_NOW.format('YYYY-MM-DD HH:mm:ss') );
 | `_` | [lodash](https://lodash.com/) | A modern JavaScript utility library delivering modularity, performance and extras. |
 | `$fs` | [fs-extra](https://github.com/jprichardson/node-fs-extra) | Extensions for the [Node.js file system module](https://nodejs.org/api/fs.html), especially for use in [async Promise](https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Promise) context. |
 | `$h` | [vscode-helpers](https://github.com/mkloubert/vscode-helpers) | A lot of helpers classes and functions. |
+| `$html` | [node-html-entities](https://github.com/mdevils/node-html-entities) | HTML / XML parser. |
 | `$linq` | [node-enumerable](https://github.com/mkloubert/node-enumerable) | Provides [LINQ-style](https://en.wikipedia.org/wiki/Language_Integrated_Query) functions and classes. |
-| `$moment` | [Moment.js](https://momentjs.com/) | Parse, validate, manipulate, and display dates and times in JavaScript. [moment-timezone](https://momentjs.com/timezone/) is already provided. |
+| `$md` | [Marked](https://github.com/markedjs/marked) | [Markdown](https://en.wikipedia.org/wiki/Markdown) parser. |
+| `$moment` | [Moment.js](https://github.com/markedjs/marked) | Parse, validate, manipulate, and display dates and times in JavaScript. [moment-timezone](https://momentjs.com/timezone/) is already provided. |
 | `$vs` | [Visual Studio Code](https://code.visualstudio.com/docs/extensionAPI/vscode-api) | VS Code API. |
 
 You also can include any module, shipped with VS Code, [Node.js](https://nodejs.org/api/modules.html), [that extension](https://github.com/mkloubert/vscode-http-client/blob/master/package.json) or any external script, which is available on your current system, by using the `require()` function.
 
+## Customizations [[&uarr;](#table-of-contents)]
+
+### CSS [[&uarr;](#customizations-)]
+
+You can save a custom CSS file, called `custom.css`, inside the extension's folder, which is the sub folder `.vscode-http-client` inside the current user's home directory.
+
 ## Syntaxes [[&uarr;](#table-of-contents)]
 
-[Syntax highlighting](https://highlightjs.org/) is supported for the following languages:
-
-* CSS
-* HTML
-* HTTP
-* JavaScript
-* JSON
-* Markdown
-* XML
-* YAML
+[Syntax highlighting](https://highlightjs.org/) is supported all languages, which are supported by [highlight.js](https://highlightjs.org/).
 
 ## Support and contribute [[&uarr;](#table-of-contents)]
 

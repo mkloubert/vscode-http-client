@@ -77,11 +77,16 @@ export interface SaveDialogOptions extends vscode.SaveDialogOptions {
 
 
 let activeWorkspace: vschc_workspaces.Workspace;
+/**
+ * The name of the event, when style changed.
+ */
+export const EVENT_STYLE_CHANGED = 'webview.style.changed';
 let extension: vscode.ExtensionContext;
 /**
  * Indicates that something is unset.
  */
 export const IS_UNSET = Symbol('IS_UNSET');
+const KEY_CURRENT_STYLE = 'vschcCurrentStyle';
 let isDeactivating = false;
 const KEY_LAST_KNOWN_DEFAULT_URI = 'vschcLastKnownDefaultUri';
 let outputChannel: vscode.OutputChannel;
@@ -148,6 +153,91 @@ export async function activate(context: vscode.ExtensionContext) {
     // commands
     WF.next(() => {
         extension.subscriptions.push(
+            // newRequest
+            vscode.commands.registerCommand('extension.http.client.changeStyle', async () => {
+                try {
+                    interface StyleFile {
+                        file: string;
+                        name: string;
+                        value?: any;
+                    }
+
+                    const CURRENT_FILE = getCurrentStyle();
+
+                    const STYLE_FILES: StyleFile[] = [{
+                        file: vscode.Uri.file(Path.resolve(
+                            Path.join(__dirname, 'res/css/bootstrap.min.css')
+                        )).fsPath,
+                        name: '(default)',
+                    }];
+
+                    const BOOTSWATCH_DIR = Path.join(__dirname, 'res/css/bootswatch');
+
+                    const FILES = vscode_helpers.from((await vscode_helpers.glob('/*.min.css', {
+                        absolute: true,
+                        cwd: BOOTSWATCH_DIR,
+                        dot: false,
+                        nocase: true,
+                        nodir: true,
+                        nonull: false,
+                        nosort: true,
+                        root: BOOTSWATCH_DIR,
+                    }))).select(f => {
+                        let name = Path.basename(f, '.min.css');
+                        name = (name[0].toUpperCase() + name.substr(1).toLowerCase()).trim();
+
+                        return <StyleFile>{
+                            file: vscode.Uri.file( Path.resolve(f) ).fsPath,
+                            name: name,
+                            value: 'bootswatch/' + Path.basename(f),
+                        };
+                    }).orderBy(sf => {
+                        return vscode_helpers.normalizeString( sf.name );
+                    }).thenBy(sf => {
+                        return vscode_helpers.normalizeString( sf.name );
+                    }).pushTo( STYLE_FILES );
+
+                    const QUICK_PICKS: vscode.QuickPickItem[] = STYLE_FILES.map((sf, index) => {
+                        let isCurrent: boolean;
+                        if (false !== CURRENT_FILE) {
+                            isCurrent = vscode.Uri.file( Path.resolve(CURRENT_FILE) ).fsPath ===
+                                        vscode.Uri.file( Path.resolve(sf.file) ).fsPath;
+                        } else {
+                            isCurrent = 0 === index;
+                        }
+
+                        return {
+                            action: async () => {
+                                await extension.workspaceState.update(
+                                    KEY_CURRENT_STYLE,
+                                    sf.value,
+                                );
+
+                                vscode_helpers.EVENTS.emit(
+                                    EVENT_STYLE_CHANGED,
+                                    vscode.Uri.file(sf.file).with({
+                                        scheme: 'vscode-resource'
+                                    })
+                                );
+                            },
+                            description: isCurrent ? '(current)' : '',
+                            detail: sf.file,
+                            label: sf.name,
+                        };
+                    });
+
+                    const SELECTED_ITEM = await vscode.window.showQuickPick(QUICK_PICKS, {
+                        placeHolder: 'Select the style the HTTP request forms ...',
+                    });
+
+                    if (SELECTED_ITEM) {
+                        await SELECTED_ITEM['action']();
+                    }
+                } catch (e) {
+                    showError(e);
+                }
+            }),
+
             // newRequest
             vscode.commands.registerCommand('extension.http.client.newRequest', async () => {
                 try {
@@ -570,6 +660,57 @@ export function exec(command: string): Promise<ExecResult> {
     });
 }
 
+/**
+ * Returns the current extension context.
+ */
+export function getContext(): vscode.ExtensionContext {
+    return extension;
+}
+
+/**
+ * Returns the path of the current, existing style (CSS) file.
+ *
+ * @return {string|false} The file path or (false) if not found.
+ */
+export function getCurrentStyle(): string | false {
+    let value = vscode_helpers.toStringSafe(
+        extension.workspaceState.get(KEY_CURRENT_STYLE, '')
+    );
+    if (!vscode_helpers.isEmptyString(value)) {
+        value = Path.resolve(
+            Path.join(__dirname + '/res/css', value)
+        );
+
+        if (vscode_helpers.isFileSync(value)) {
+            return Path.resolve( value );
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Returns the URI for the current style file.
+ *
+ * @param {Function} getResourceUri The function to use to resolve the default URI.
+ *
+ * @return {vscode.Uri} The resource URI of the current style.
+ */
+export function getCurrentStyleUri(getResourceUri: (path: string) => vscode.Uri) {
+    let uri: vscode.Uri;
+
+    let style = getCurrentStyle();
+    if (false === style) {
+        uri = getResourceUri('css/bootstrap.min.css');
+    } else {
+        uri = vscode.Uri.file( style ).with({
+            scheme: 'vscode-resource'
+        });
+    }
+
+    return uri;
+}
+
 async function getDefaultUriForDialogs() {
     let uri: vscode.Uri;
 
@@ -651,6 +792,31 @@ export function getUsersExtensionDir() {
             OS.homedir(), '.vscode-http-client'
         )
     );
+}
+
+/**
+ * Returns all possible resource URIs for web views.
+ *
+ * @return {vscode.Uri[]} The list of URIs.
+ */
+export function getWebViewResourceUris(): vscode.Uri[] {
+    const URIs: vscode.Uri[] = [];
+
+    try {
+        URIs.push(
+            vscode.Uri.file( getUsersExtensionDir() )
+        );
+    } catch { }
+
+    try {
+        URIs.push(
+            vscode.Uri.file(Path.resolve(
+                Path.join(__dirname, './res')
+            ))
+        );
+    } catch { }
+
+    return URIs;
 }
 
 /**

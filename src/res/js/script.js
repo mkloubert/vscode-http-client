@@ -43,6 +43,13 @@ function vschc_get_content_type(headers) {
     }
 }
 
+function vschc_post(command, data) {
+    vscode.postMessage({
+        command: vschc_to_string(command),
+        data: data
+    });
+}
+
 function vschc_normalize_str(val) {
     return vschc_to_string(val).toLowerCase().trim();
 }

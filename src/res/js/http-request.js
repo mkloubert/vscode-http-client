@@ -971,47 +971,7 @@ jQuery(() => {
         }
 
         switch (MSG.command) {
-            case 'executeScriptCompleted':
-                {
-                    vschc_update_response_button_states(true);
-                }
-                break;
-
-            case 'findInitialControlToFocus':
-                {
-                    const URL_FIELD = jQuery('#vschc-input-url');
-
-                    let controlToFocus = false;
-
-                    if (vschc_is_empty_str( URL_FIELD.val() )) {
-                        controlToFocus = URL_FIELD;
-                    }
-
-                    if (!controlToFocus) {
-                        const HEADERS_CARD = jQuery('#vschc-headers-card');
-                        const HEADERS_CARD_BODY = HEADERS_CARD.find('.card-body');
-
-                        HEADERS_CARD_BODY.find('table tbody tr.vschc-header-row').each(function() {
-                            const ROW = jQuery(this);
-
-                            const NAME_FIELD = ROW.find('.vschc-name input');
-
-                            if (vschc_is_empty_str( NAME_FIELD.val() )) {
-                                if (!controlToFocus) {
-                                    controlToFocus = NAME_FIELD;
-                                }
-                            }   
-                        });
-                    }
-
-                    if (!controlToFocus) {
-                        controlToFocus = URL_FIELD;
-                    }
-
-                    controlToFocus.focus();
-                }
-                break;
-
+            case 'applyRequest':
             case 'importRequestCompleted':
                 {
                     const REQUEST = MSG.data;
@@ -1092,6 +1052,45 @@ jQuery(() => {
                     vschc_update_header_area();
 
                     jQuery('#vschc-input-url').focus();                    
+                }
+                break;
+
+            case 'executeScriptCompleted':
+                vschc_update_response_button_states(true);
+                break;
+
+            case 'findInitialControlToFocus':
+                {
+                    const URL_FIELD = jQuery('#vschc-input-url');
+
+                    let controlToFocus = false;
+
+                    if (vschc_is_empty_str( URL_FIELD.val() )) {
+                        controlToFocus = URL_FIELD;
+                    }
+
+                    if (!controlToFocus) {
+                        const HEADERS_CARD = jQuery('#vschc-headers-card');
+                        const HEADERS_CARD_BODY = HEADERS_CARD.find('.card-body');
+
+                        HEADERS_CARD_BODY.find('table tbody tr.vschc-header-row').each(function() {
+                            const ROW = jQuery(this);
+
+                            const NAME_FIELD = ROW.find('.vschc-name input');
+
+                            if (vschc_is_empty_str( NAME_FIELD.val() )) {
+                                if (!controlToFocus) {
+                                    controlToFocus = NAME_FIELD;
+                                }
+                            }   
+                        });
+                    }
+
+                    if (!controlToFocus) {
+                        controlToFocus = URL_FIELD;
+                    }
+
+                    controlToFocus.focus();
                 }
                 break;
 
@@ -1281,6 +1280,26 @@ jQuery(() => {
                 vschc_do_not_show_body_from_file_btn = !!MSG.data;
                 vschc_update_body_from_file_btn_visibility();
                 break;
+
+            case 'styleChanged':
+                {
+                    const CSS_FILE = vschc_to_string(MSG.data);
+                    if ('' !== CSS_FILE.trim()) {
+                        const OLD_LINK = jQuery("head link[vschc-style='bootstrap']");
+
+                        vschc_log(`OLD_LINK: ${ OLD_LINK.length }`);
+                        vschc_log(`CSS_FILE: ${ CSS_FILE }`);
+
+                        const NEW_LINK = document.createElement("link");
+                        NEW_LINK.setAttribute("rel", "stylesheet");
+                        NEW_LINK.setAttribute("type", "text/css");
+                        NEW_LINK.setAttribute("href", CSS_FILE);
+                        NEW_LINK.setAttribute('vschc-style', 'bootstrap');
+
+                        OLD_LINK.replaceWith( NEW_LINK );
+                    }
+                }
+                break;
         }
     });
 
@@ -1323,6 +1342,11 @@ jQuery(() => {
         vscode.postMessage({
             command: 'importRequest'
         });
+    });
+
+    jQuery('#vschc-clone-request-btn').on('click', function() {
+        vschc_post('cloneRequest',
+                   vschc_prepare_request());
     });
 
     jQuery('#vschc-reset-responses-btn').on('click', function() {
