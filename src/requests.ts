@@ -128,11 +128,13 @@ interface SaveContentData {
 
 interface SendRequestResponse {
     body: string;
+    bodyIsText: boolean;
     code: number;
     headers: any;
     httpVersion: string;
     request: {
         body: string;
+        bodyIsText: boolean;
         executionTime: number;
         headers: any;
         method: string;
@@ -984,7 +986,7 @@ export class HTTPRequest extends HTTPRequestBase {
                     await vschc.exec(tempFile);
 
                     tryDeleteTempFile = false;
-                }, `The file will be opened / executed as '${ tempFile }'. Are you sure to do that?`);
+                }, `The content will be opened / executed as '${ tempFile }'. Are you sure to do that?`);
             } finally {
                 if (tryDeleteTempFile) {
                     try {
@@ -1124,6 +1126,24 @@ export class HTTPRequest extends HTTPRequestBase {
             const RESP = result.response;
             const BODY = await vscode_helpers.readAll(RESP);
 
+            const GET_IF_TEXT = async (d: Buffer | string) => {
+                try {
+                    if (!_.isNil(d)) {
+                        if (!Buffer.isBuffer(d)) {
+                            d = new Buffer(d, 'base64');
+                        }
+
+                        if (d.length > 0) {
+                            return !(await vscode_helpers.isBinaryContent(d));
+                        }
+                    }
+
+                    return true;
+                } catch { }
+
+                return false;
+            };
+
             let url = `${ result.url.protocol }//`;
             {
                 if (!_.isNil(result.url.auth)) {
@@ -1134,13 +1154,17 @@ export class HTTPRequest extends HTTPRequestBase {
                 url += vscode_helpers.toStringSafe( result.url.path );
             }
 
+            const REQUEST_BODY = await result.readRequestBody();
+
             r = {
                 body: (BODY && BODY.length > 0) ? BODY.toString('base64') : null,
+                bodyIsText: await GET_IF_TEXT(BODY),
                 code: RESP.statusCode,
                 headers: {},
                 httpVersion: RESP.httpVersion,
                 request: {
-                    body: await result.readRequestBody(),
+                    body: REQUEST_BODY,
+                    bodyIsText: await GET_IF_TEXT(REQUEST_BODY),
                     executionTime: result.executionTime,
                     headers: vscode_helpers.cloneObject( result.options.headers ),
                     method: result.options.method,

@@ -346,10 +346,10 @@ SECURITY HINT: The new tab is opened with the following settings:
 
 ```json
 {
-    enableCommandUris: true,
-    enableFindWidget: true,
-    enableScripts: true,
-    retainContextWhenHidden: true,
+    "enableCommandUris": true,
+    "enableFindWidget": true,
+    "enableScripts": true,
+    "retainContextWhenHidden": true
 }
 ```
 
@@ -387,12 +387,12 @@ The parser uses the following [settings](https://marked.js.org/):
 
 ```json
 {
-    breaks: true,
-    gfm: true,
-    mangle: true,
-    silent: true,
-    tables: true,
-    sanitize: true,
+    "breaks": true,
+    "gfm": true,
+    "mangle": true,
+    "silent": true,
+    "tables": true,
+    "sanitize": true
 }
 ```
 
@@ -400,10 +400,10 @@ SECURITY HINT: The new tab is opened with the following settings:
 
 ```json
 {
-    enableCommandUris: false,
-    enableFindWidget: false,
-    enableScripts: true,
-    retainContextWhenHidden: true,
+    "enableCommandUris": false,
+    "enableFindWidget": false,
+    "enableScripts": true,
+    "retainContextWhenHidden": true
 }
 ```
 

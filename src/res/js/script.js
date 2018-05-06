@@ -64,10 +64,41 @@ function vschc_to_string(val) {
     }
 
     try {
+        if (val instanceof Error) {
+            let errName = '';
+            try {
+                if (val.constructor) {
+                    errName = val.constructor.name;
+                }
+
+                if (errName) {
+                    errName = ` ('${ errName }')`;
+                }
+            } catch (e) {
+                errName = '';
+            }
+    
+            return `ERROR${ errName }: ${ val.message }
+    
+${ val.stack }`;
+        }
+    } catch (e) { }
+
+    try {
+        if ('function' === typeof val['toString']) {
+            return '' + val.toString();
+        }
+    } catch (e) { }
+
+    try {
         if (Array.isArray(val) || ('object' === typeof val)) {
             return JSON.stringify(val);
         }
     } catch (e) { }
 
-    return '' + val;
+    try {
+        return '' + val;
+    } catch (e) { }
+
+    return '';
 }

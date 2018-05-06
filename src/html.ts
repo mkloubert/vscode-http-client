@@ -167,12 +167,20 @@ export function generateHeader(opts: GenerateHeaderOptions) {
             const vscode = acquireVsCodeApi();
 
             function vschc_log(msg) {
-                vscode.postMessage({
-                    command: 'log',
-                    data: {
-                        message: JSON.stringify(msg)
+                try {
+                    if (msg instanceof Error) {
+                        msg = \`ERROR: \${ msg.message }
+
+    \${ msg.stack }\`;
                     }
-                });
+
+                    vscode.postMessage({
+                        command: 'log',
+                        data: {
+                            message: JSON.stringify(msg)
+                        }
+                    });
+                } catch (e) { }
             }
 
             window.onerror = function() {

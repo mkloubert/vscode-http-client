@@ -385,7 +385,8 @@ function vschc_create_response_content(responseData, whenClosed) {
                             httpAppender: (content) => {
                                 http += content;
                             },
-                            httpRefresher: REFRESH_HTTP
+                            httpRefresher: REFRESH_HTTP,
+                            isText: RESPONSE.bodyIsText
                         }
                     );
 
@@ -497,7 +498,8 @@ function vschc_create_response_content(responseData, whenClosed) {
                             httpAppender: (content) => {
                                 http += content;
                             },
-                            httpRefresher: REFRESH_HTTP
+                            httpRefresher: REFRESH_HTTP,
+                            isText: RESPONSE.bodyIsText
                         }
                     );
 
@@ -536,6 +538,26 @@ function vschc_create_response_content(responseData, whenClosed) {
 
                     BUTTONS.push( OPEN_IN_EDITOR_BTN );
                 }
+
+
+                const REDO_BTN = jQuery('<a class="btn btn-sm btn-warning" title="Redo That Request">' + 
+                                        '<i class="fa fa-repeat" aria-hidden="true"></i>' + 
+                                        '</a>');
+                REDO_BTN.on('click', function() {
+                    vschc_send_request({
+                        body: {
+                            content: RESPONSE.request.body,
+                            file: false,
+                            fileSize: false
+                        },
+                        headers: RESPONSE.request.headers,
+                        method: RESPONSE.request.method,
+                        title: jQuery('#vschc-input-title').val(),
+                        url: RESPONSE.request.url,
+                    });
+                });
+
+                BUTTONS.push( REDO_BTN );
 
                 if (BUTTONS.length > 0) {
                     const BTN_LIST = jQuery('<div class="vschc-button-list" />');
@@ -618,8 +640,16 @@ function vschc_get_http_content_displayer(
 
     const REFRESH_HTTP = () => {
         if (opts && opts.httpRefresher) {
-            httpRefresher();
+            opts.httpRefresher();
         }
+    };
+
+    const TEXT_DISPLAYER = () => {
+        if (!vschc_is_empty_str(body)) {
+            APPEND_TO_HTTP( atob(body) );
+        }        
+
+        REFRESH_HTTP();
     };
 
     if (headers && !vschc_is_empty_str(body)) {
@@ -719,11 +749,7 @@ function vschc_get_http_content_displayer(
                     hljs.highlightBlock( YAML_CODE[0] );
                 };
             } else if (MIME.startsWith('text/')) {
-                contentDisplayer = () => {
-                    APPEND_TO_HTTP( atob( body ) );
-
-                    REFRESH_HTTP();
-                };
+                contentDisplayer = TEXT_DISPLAYER;
             } else if (MIME.startsWith('image/')) {
                 contentDisplayer = () => {
                     const IMG = jQuery('<img />');
@@ -732,6 +758,14 @@ function vschc_get_http_content_displayer(
 
                     APPEND_CONTENT( IMG );
                 };
+            }
+        }
+    }
+
+    if (!contentDisplayer) {
+        if (opts) {
+            if (true === opts.isText) {
+                contentDisplayer = TEXT_DISPLAYER;
             }
         }
     }
@@ -816,7 +850,11 @@ function vschc_reset_response() {
     vschc_next_response_id = -1;
 }
 
-function vschc_send_request() {
+function vschc_send_request(requestToSend) {
+    if (arguments.length < 1) {
+        requestToSend = vschc_prepare_request();
+    }
+
     const BTN = jQuery('#vschc-send-request');
 
     const URL_FIELD = jQuery('#vschc-input-url');
@@ -831,7 +869,7 @@ function vschc_send_request() {
 
         vscode.postMessage({
             command: 'sendRequest',
-            data: vschc_prepare_request()
+            data: requestToSend
         });
     }
 }
@@ -1286,9 +1324,6 @@ jQuery(() => {
                     const CSS_FILE = vschc_to_string(MSG.data);
                     if ('' !== CSS_FILE.trim()) {
                         const OLD_LINK = jQuery("head link[vschc-style='bootstrap']");
-
-                        vschc_log(`OLD_LINK: ${ OLD_LINK.length }`);
-                        vschc_log(`CSS_FILE: ${ CSS_FILE }`);
 
                         const NEW_LINK = document.createElement("link");
                         NEW_LINK.setAttribute("rel", "stylesheet");
