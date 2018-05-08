@@ -159,6 +159,7 @@ export function generateHeader(opts: GenerateHeaderOptions) {
 
         <script src="${ opts.getResourceUri('js/moment-with-locales.min.js') }"></script>
         <script src="${ opts.getResourceUri('js/highlight.pack.js') }"></script>
+        <script src="${ opts.getResourceUri('js/showdown.min.js') }"></script>
         <script src="${ opts.getResourceUri('js/jquery.min.js') }"></script>
         <script src="${ opts.getResourceUri('js/bootstrap.bundle.min.js') }"></script>
         <script src="${ opts.getResourceUri('js/select2.full.min.js') }"></script>

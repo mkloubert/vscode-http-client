@@ -26,6 +26,7 @@ import * as MimeTypes from 'mime-types';
 import * as Moment from 'moment';
 import * as Path from 'path';
 import * as OS from 'os';
+import * as vschc_help from './help';
 import * as vschc_requests from './requests';
 import * as vschc_workspaces from './workspaces';
 import * as vscode from 'vscode';
@@ -74,6 +75,20 @@ export interface OpenDialogOptions extends vscode.OpenDialogOptions {
  * Extenstion of 'vscode.SaveDialogOptions' interface.
  */
 export interface SaveDialogOptions extends vscode.SaveDialogOptions {
+}
+
+/**
+ * A message from and for a WebView.
+ */
+export interface WebViewMessage {
+    /**
+     * The command.
+     */
+    command: string;
+    /**
+     * The data.
+     */
+    data?: any;
 }
 
 
@@ -501,6 +516,15 @@ for (let i = 0; i < USERS.length; i++) {
                     await vschc_requests.startNewRequest({
                         showOptions: vscode.ViewColumn.Two,
                     });
+                } catch (e) {
+                    showError(e);
+                }
+            }),
+
+            // showHelp
+            vscode.commands.registerCommand('extension.http.client.showHelp', async () => {
+                try {
+                    await vschc_help.showScriptHelp();
                 } catch (e) {
                     showError(e);
                 }

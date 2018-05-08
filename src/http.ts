@@ -393,7 +393,7 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
                                             const AUTH_SEP: number = value.indexOf(':');
 
                                             if (AUTH_SEP > -1) {
-                                                // authmatically convert to Base64 string
+                                                // automatically convert to Base64 string
 
                                                 value = value.trim();
 
@@ -401,7 +401,7 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
                                                     value.indexOf(' ') + 1
                                                 ).trim();
 
-                                                value = 'Basic ' + (new Buffer(value)).toString('base64');
+                                                value = 'Basic ' + (new Buffer(value, 'ascii')).toString('base64');
                                             }
                                         }
                                     }

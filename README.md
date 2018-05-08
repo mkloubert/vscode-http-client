@@ -36,11 +36,14 @@ Simple way to do [HTTP requests](https://en.wikipedia.org/wiki/Hypertext_Transfe
          * [uuid](#uuid-)
          * [utc](#utc-)
        * [Modules](#modules-)
-3. [Customizations](#customizations-)
+3. [Enhancements](#enhancements-)
+   * [Authorization](#authorization-)
+     * [Basic Auth](#basic-auth-)
+4. [Customizations](#customizations-)
    * [CSS](#css-)
-4. [Syntaxes](#syntaxes-)
-5. [Support and contribute](#support-and-contribute-)
-6. [Related projects](#related-projects-)
+5. [Syntaxes](#syntaxes-)
+6. [Support and contribute](#support-and-contribute-)
+7. [Related projects](#related-projects-)
    * [node-enumerable](#node-enumerable-)
    * [vscode-helpers](#vscode-helpers-)
 
@@ -86,6 +89,7 @@ Press `F1` and enter one of the following commands:
 | `HTTP Client: New HTTP request (split view)...` | Opens a new HTTP request form by splitting the current view. | `extension.http.client.newRequestSplitView` |
 | `HTTP Client: Send editor content as HTTP request ...` | Uses the content of a visible editor as body for a HTTP request. | `extension.http.client.newRequestForEditor` |
 | `HTTP Client: Send file as HTTP request ...` | Uses a (local) file as body for a HTTP request. | `extension.http.client.newRequestFromFile` |
+| `HTTP Client: Show help ...` | Shows a new help tab. | `extension.http.client.showHelp` |
 
 There are currently no predefined key bindings for these commands, but you can setup them [by your own](https://code.visualstudio.com/docs/getstarted/keybindings).
 
@@ -200,7 +204,7 @@ for (let i = 0; i < USER_IDS.length; i++) {
 
 ###### alert [[&uarr;](#functions-)]
 
-Shows a (wanring) popup.
+Shows a (warning) popup.
 
 ```javascript
 alert('Hello!');
@@ -423,7 +427,7 @@ Alias for [guid()](#guid-).
 
 ###### utc [[&uarr;](#functions-)]
 
-Returns a new instance of a [Moment.js](https://momentjs.com/) object in [UTC]().
+Returns a new instance of a [Moment.js](https://momentjs.com/) object in [UTC](https://en.wikipedia.org/wiki/Coordinated_Universal_Time).
 
 ```javascript
 const UTC_NOW = utc();
@@ -445,6 +449,26 @@ console.log( UTC_NOW.format('YYYY-MM-DD HH:mm:ss') );
 | `$vs` | [Visual Studio Code](https://code.visualstudio.com/docs/extensionAPI/vscode-api) | VS Code API. |
 
 You also can include any module, shipped with VS Code, [Node.js](https://nodejs.org/api/modules.html), [that extension](https://github.com/mkloubert/vscode-http-client/blob/master/package.json) or any external script, which is available on your current system, by using the `require()` function.
+
+## Enhancements [[&uarr;](#table-of-contents)]
+
+### Authorization [[&uarr;](#enhancements-)]
+
+#### Basic Auth [[&uarr;](#authorization-)]
+
+Instead of setting up a [Basic Auth](https://en.wikipedia.org/wiki/Basic_access_authentication) request header by using a [Base64](https://en.wikipedia.org/wiki/Base64) string like
+
+```http
+Authorization: Basic bWtsb3ViZXJ0Om15UGFzc3dvcnQ=
+```
+
+you can use the value as simple plain text, separating username and password by `:` character:
+
+```http
+Authorization: Basic mkloubert:mypassword
+```
+
+Keep in mind: The string right to `Basic` will be trimmed!
 
 ## Customizations [[&uarr;](#table-of-contents)]
 

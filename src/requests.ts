@@ -198,9 +198,7 @@ export interface StartNewRquestOptions {
     title?: string;
 }
 
-interface WebViewMessage {
-    command: string;
-    data?: any;
+interface WebViewMessage extends vschc.WebViewMessage {
 }
 
 

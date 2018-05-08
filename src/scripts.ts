@@ -94,14 +94,14 @@ export async function executeScript(_e0bcc1df_3f0b_4a19_9e42_238d7fe990c5: Execu
                 break;
 
             case '4':
-            case 'v4':
             case 'html4':
+            case 'v4':
                 parserFactory = () => new $html.Html4Entities();
                 break;
 
             case '5':
-            case 'v5':
             case 'html5':
+            case 'v5':
                 parserFactory = () => new $html.Html5Entities();
                 break;
 

@@ -18,17 +18,19 @@
                 "deployOnChange": true,
                 "removeOnChange": true,
 
-                "targets": [ "out" ]
+                "targets": [ "res" ]
             }
         ],
 
         "targets": [
             {
-                "name": "out",
+                "name": "res",
                 "type": "local",
                 "dir": "./out/res",
+
                 "mappings": {
                     "/src/res/css/**/*": "/css",
+                    "/src/res/help/**/*": "/help",
                     "/src/res/img/**/*": "/img",
                     "/src/res/js/**/*": "/js"
                 }
