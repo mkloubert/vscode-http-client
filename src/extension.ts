@@ -626,7 +626,7 @@ for (let i = 0; i < USERS.length; i++) {
                     );
                     if (LAST_VERSION !== VERSION) {
                         const CHANGELOG_FILE = Path.resolve(
-                            Path.join(__dirname, 'CHANGELOG.md')
+                            Path.join(__dirname, '../CHANGELOG.md')
                         );
 
                         if (await vscode_helpers.isFile(CHANGELOG_FILE)) {
