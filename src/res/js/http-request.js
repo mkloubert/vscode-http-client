@@ -1399,6 +1399,189 @@ jQuery(() => {
     jQuery('#vschc-add-header-btn').on('click', function() {
         vschc_add_header_row();
     });
+
+    jQuery('#vschc-input-url-group .input-group-append').on('click', function() {
+        const URL_FIELD = jQuery('#vschc-input-url');
+        if (vschc_is_empty_str(URL_FIELD.val())) {
+            URL_FIELD.focus();
+
+            return;
+        }
+
+        const WIN = jQuery('#vschc-edit-url-parameters-modal');
+        
+        const WIN_BODY = WIN.find('.modal-body');
+        const WIN_FOOTER = WIN.find('.modal-footer');
+
+        let url = vschc_to_string( URL_FIELD.val() );
+
+        const RESET_FORM = () => {
+            WIN_BODY.html('');
+
+            const PARAM_TABLE = jQuery('<table class="table table-hover vschc-param-list">' +
+                                    '<thead>' + 
+                                    '<tr>' + 
+                                    '<th class="vschc-name">Name</th>' + 
+                                    '<th class="vschc-value">Value</th>' + 
+                                    '<th class="vschc-functions">&nbsp;</th>' + 
+                                    '</tr>' + 
+                                    '</thead>' + 
+                                    '<tbody />' + 
+                                    '</table>');
+
+            PARAM_TABLE.appendTo( WIN_BODY );
+
+            const PARAM_TABLE_BODY = PARAM_TABLE.find('tbody');        
+
+            let initRowListIfNeeded;
+
+            const ADD_ROW = () => {
+                const NEW_ROW = jQuery('<tr>' + 
+                                    '<td class="vschc-name">' + 
+                                    '<input type="text" class="form-control">' + 
+                                    '</td>' + 
+                                    '<td class="vschc-value">' + 
+                                    '<input type="text" class="form-control">' + 
+                                    '</td>' + 
+                                    '<td class="vschc-functions" />' + 
+                                    '</tr>');
+
+                const DELETE_BTN = jQuery('<a class="btn btn-sm btn-danger">' +
+                                        '<i class="fa fa-trash" aria-hidden="true"></i>' +
+                                        '</a>');
+                DELETE_BTN.attr('title', 'Remove Parameter ...');
+                DELETE_BTN.on('click', function() {
+                    NEW_ROW.remove();
+
+                    initRowListIfNeeded();
+                });
+                NEW_ROW.find('.vschc-functions')
+                    .append( DELETE_BTN );
+
+                NEW_ROW.appendTo( PARAM_TABLE_BODY );
+
+                return NEW_ROW;
+            };
+
+            initRowListIfNeeded = () => {
+                if (PARAM_TABLE_BODY.find('tr').length < 1) {
+                    ADD_ROW();
+                }
+
+                let controlToFocus = false;
+
+                PARAM_TABLE_BODY.find('tr').each(function() {
+                    const ROW = jQuery(this);
+
+                    const NAME_FIELD = ROW.find('.vschc-name input');
+                    const VALUE_FIELD = ROW.find('.vschc-value input');
+
+                    if (false === controlToFocus) {
+                        if (vschc_is_empty_str( NAME_FIELD.val() )) {
+                            controlToFocus = NAME_FIELD;
+                        } else if (vschc_is_empty_str( VALUE_FIELD.val() )) {
+                            controlToFocus = VALUE_FIELD;   
+                        }
+                    }
+                });
+
+                if (false !== controlToFocus) {
+                    controlToFocus.focus();
+                }
+            };
+
+            const QUERY_SEP = url.indexOf('?');
+            if (QUERY_SEP > -1) {
+                const SEARCH = url.substr(QUERY_SEP + 1);
+                if (!vschc_is_empty_str(SEARCH)) {
+                    const PARAM_LIST = SEARCH.split('&').filter(x => {
+                        return '' !== x.trim();
+                    }).map(x => {
+                        let name;
+                        let value;
+
+                        const PARAM_SEP = x.indexOf('=');
+                        if (PARAM_SEP > -1) {
+                            name = x.substr(0, PARAM_SEP);
+                            value = x.substr(PARAM_SEP + 1);
+                        } else {
+                            name = x;
+                        }
+
+                        return {
+                            name: vschc_to_string(name).trim(),
+                            value: decodeURIComponent( vschc_to_string(value) )
+                        };
+                    });
+
+                    const PARAMS = {};
+                    for (const P of PARAM_LIST) {
+                        const NEW_ROW = ADD_ROW();
+
+                        NEW_ROW.find('.vschc-name input')
+                            .val(P.name);
+                        NEW_ROW.find('.vschc-value input')
+                            .val(P.value);
+                    }
+                }
+            }
+
+            WIN_FOOTER.find('.vschc-add-btn').off('click').on('click', function() {
+                ADD_ROW();
+            });
+
+            WIN_FOOTER.find('.vschc-update-btn').off('click').on('click', function() {
+                let newUrl = url;
+                if (QUERY_SEP > -1) {
+                    newUrl = newUrl.substr(0, QUERY_SEP);
+                }
+                
+                const PARAMS_TO_APPEND = [];
+                
+                PARAM_TABLE_BODY.find('tr').each(function() {
+                    const ROW = jQuery(this);
+
+                    const NAME = ROW.find('.vschc-name input').val();
+                    const VALUE = ROW.find('.vschc-value input').val();
+
+                    if (!vschc_is_empty_str(NAME) || !vschc_is_empty_str(VALUE)) {
+                        PARAMS_TO_APPEND.push({
+                            name: NAME.trim(),
+                            value: VALUE
+                        });
+                    }
+                });
+
+                PARAMS_TO_APPEND.forEach((p, i) => {
+                    newUrl += `${i > 0 ? '&' : '?'}` + 
+                            `${ p.name }=${ encodeURIComponent(p.value) }`;
+                });
+
+                URL_FIELD.val( newUrl );
+
+                WIN.modal('hide');    
+            });
+
+            const ADD_ROW_BTN = jQuery('<a type="button" class="btn btn-dark vschc-add-btn">' + 
+                                       '<i class="fa fa-plus-square" aria-hidden="true"></i>' + 
+                                       '</a>');
+            ADD_ROW_BTN.attr('title', 'Add New Parameter ...');
+            ADD_ROW_BTN.on('click', function() {
+                ADD_ROW();
+            });
+            ADD_ROW_BTN.prependTo( WIN_BODY );
+
+            initRowListIfNeeded();
+        };
+
+        WIN_FOOTER.find('.vschc-undo-btn').off('click').on('click', function() {
+            RESET_FORM();
+        });
+
+        RESET_FORM();
+
+        WIN.modal('show');
+    });
 });
 
 jQuery(() => {

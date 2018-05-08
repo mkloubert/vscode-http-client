@@ -845,7 +845,15 @@ export class HTTPRequest extends HTTPRequestBase {
                     </label>
 
                     <div class="col-sm-8">
-                        <input type="url" class="form-control" id="vschc-input-url" placeholder="https://example.com/resource/123">
+                        <div class="input-group" id="vschc-input-url-group">
+                            <input type="url" class="form-control" id="vschc-input-url" placeholder="https://example.com/resource/123">
+
+                            <div class="input-group-append" title="Edit URL Parameters">
+                                <div class="input-group-text">
+                                    <i class="fa fa-pencil" aria-hidden="true"></i>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="col-sm-2">
@@ -936,6 +944,38 @@ export class HTTPRequest extends HTTPRequestBase {
     </div>
 </main>
 `,
+            getFooter: () => {
+                return `
+
+<div class="modal" tabindex="-1" role="dialog" id="vschc-edit-url-parameters-modal">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Edit URL parameters</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true" class="text-white">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body"></div>
+
+      <div class="modal-footer">
+        <a type="button" class="btn btn-warning vschc-undo-btn">
+          <i class="fa fa-undo" aria-hidden="true"></i>
+          <span>Undo</span>
+        </a>
+
+        <a type="button" class="btn btn-success vschc-update-btn">
+            <i class="fa fa-floppy-o" aria-hidden="true"></i>
+            <span>Update</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+`;
+            },
             getHeaderButtons: () => {
                 return `
 <a class="btn btn-primary btn-sm" id="vschc-import-request-btn" title="Load Request Settings From File">

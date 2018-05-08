@@ -26,6 +26,10 @@ import * as vscode_helpers from 'vscode-helpers';
  */
 export interface GenerateFooterOptions extends ResourceUriResolver {
     /**
+     * The function that generates additional footer content.
+     */
+    getFooter?: GetFooterFunction;
+    /**
      * The path to the script.
      */
     scriptFile: string;
@@ -52,6 +56,10 @@ export interface GenerateHtmlDocumentOptions extends HeaderButtonResolver, Resou
      */
     getContent?: () => string;
     /**
+     * The function that generates additional footer content.
+     */
+    getFooter?: GetFooterFunction;
+    /**
      * The (internal) name of the document.
      */
     name: string;
@@ -62,6 +70,13 @@ export interface GenerateHtmlDocumentOptions extends HeaderButtonResolver, Resou
  */
 export interface GenerateNavBarHeaderOptions extends HeaderButtonResolver, ResourceUriResolver {
 }
+
+/**
+ * Function to generate (additional) footer content.
+ *
+ * @return {string} The generated HTML code.
+ */
+export type GetFooterFunction = () => string;
 
 /**
  * Function to generate header buttons.
@@ -129,6 +144,9 @@ ${ !customStyle ? '' : `<link rel="stylesheet" href="${ customStyle }">` }
 
     <script src="${ opts.getResourceUri('js/script.js') }"></script>
     <script src="${ opts.getResourceUri('js/' + opts.scriptFile + '.js') }"></script>
+
+${ opts.getFooter ? opts.getFooter() : '' }
+
   </body>
 </html>`;
 }
@@ -221,6 +239,7 @@ ${ generateNavBarHeader({
 ${ opts.getContent ? opts.getContent() : '' }
 
 ${ generateFooter({
+    getFooter: opts.getFooter,
     getResourceUri: opts.getResourceUri,
     scriptFile: opts.name,
     styleFile: opts.name,

@@ -133,3 +133,33 @@
 #vschc-clone-request-btn {
     margin-left: 24px;
 }
+
+#vschc-input-url-group .input-group-append {
+    cursor: pointer;
+}
+
+#vschc-edit-url-parameters-modal .modal-dialog {
+    max-width: 75% !important;
+}
+
+#vschc-edit-url-parameters-modal .modal-body .vschc-param-list {
+    margin-top: 8px;
+}
+
+#vschc-edit-url-parameters-modal .modal-body .vschc-param-list .vschc-name {
+    width: 192px;
+}
+
+#vschc-edit-url-parameters-modal .modal-body .vschc-param-list .vschc-functions {
+    text-align: right;
+    width: 80px;
+}
+
+#vschc-edit-url-parameters-modal .modal-body {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+#vschc-edit-url-parameters-modal .modal-footer .btn .fa {
+    margin-right: 8px;
+}
