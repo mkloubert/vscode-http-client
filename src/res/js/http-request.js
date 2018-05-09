@@ -11,101 +11,81 @@ function vschc_add_header_row(name, value) {
         return;
     }
 
-    let controlToFocus = false;
+    const TABLE_BODY = TABLE.find('tbody');
 
-    if (arguments.length < 1) {
-        TABLE.find('tr.vschc-header-row').each(function() {
-            const ROW = jQuery(this);
+    const NEW_ROW = jQuery('<tr class="vschc-header-row">' + 
+                           '<td class="vschc-name" />' + 
+                           '<td class="vschc-value" />' + 
+                           '<td class="vschc-actions" />' + 
+                           '</tr>');
 
-            const NAME_FIELD = ROW.find('.vschc-name input');
+    const NAME_FIELD = jQuery('<input type="text" class="form-control" />');
+    const VALUE_FIELD = jQuery('<input type="text" class="form-control" />');
 
-            if (vschc_is_empty_str( NAME_FIELD.val() )) {
-                if (!controlToFocus) {
-                    controlToFocus = NAME_FIELD;
-                }
-            }            
-        });
-    }
-
-    if (!controlToFocus) {
-        const TABLE_BODY = TABLE.find('tbody');
-
-        const NEW_ROW = jQuery('<tr class="vschc-header-row">' + 
-                               '<td class="vschc-name" />' + 
-                               '<td class="vschc-value" />' + 
-                               '<td class="vschc-actions" />' + 
-                               '</tr>');
-
-        const NAME_FIELD = jQuery('<input type="text" class="form-control" />');
-        const VALUE_FIELD = jQuery('<input type="text" class="form-control" />');
-
-        NAME_FIELD.on('keyup', function(e) {
-            if (13 != e.which) {
-                return;
-            }
-            
-            e.preventDefault();
-
-            let controlToFocus = false;
-
-            if (!vschc_is_empty_str( NAME_FIELD.val() )) {
-                if (vschc_is_empty_str( VALUE_FIELD.val() )) {
-                    controlToFocus = VALUE_FIELD;
-                }
-            }
-
-            if (controlToFocus) {
-                controlToFocus.focus();
-            } else {
-                vschc_add_header_row();
-            }
-        });
-        NAME_FIELD.appendTo( NEW_ROW.find('.vschc-name') );
+    NAME_FIELD.on('keyup', function(e) {
+        if (13 != e.which) {
+            return;
+        }
         
-        VALUE_FIELD.on('keyup', function(e) {
-            if (13 != e.which) {
-                return;
+        e.preventDefault();
+
+        let controlToFocus = false;
+
+        if (!vschc_is_empty_str( NAME_FIELD.val() )) {
+            if (vschc_is_empty_str( VALUE_FIELD.val() )) {
+                controlToFocus = VALUE_FIELD;
             }
-            
-            e.preventDefault();
-            
-            let controlToFocus = false;
-
-            if (vschc_is_empty_str( NAME_FIELD.val() )) {
-                controlToFocus = NAME_FIELD;
-            }
-
-            if (controlToFocus) {
-                controlToFocus.focus();
-            } else {
-                vschc_add_header_row();
-            }
-        });
-        VALUE_FIELD.appendTo( NEW_ROW.find('.vschc-value') );
-
-        const REMOVE_BTN = jQuery('<a class="btn btn-sm btn-danger align-middle vschc-remove-btn" title="Remove Header">' + 
-                                  '<i class="fa fa-trash" aria-hidden="true"></i>' + 
-                                  '</a>');
-        REMOVE_BTN.on('click', function() {
-            NEW_ROW.remove();
-
-            vschc_update_header_area();
-        });
-        REMOVE_BTN.appendTo( NEW_ROW.find('.vschc-actions') );
-
-        if (arguments.length > 0) {
-            NAME_FIELD.val( vschc_to_string(name) );
-            VALUE_FIELD.val( vschc_to_string(value) );
         }
 
-        NEW_ROW.appendTo( TABLE_BODY );
+        if (controlToFocus) {
+            controlToFocus.focus();
+        } else {
+            vschc_add_header_row();
+        }
+    });
+    NAME_FIELD.appendTo( NEW_ROW.find('.vschc-name') );
+    
+    VALUE_FIELD.on('keyup', function(e) {
+        if (13 != e.which) {
+            return;
+        }
+        
+        e.preventDefault();
+        
+        let controlToFocus = false;
 
-        controlToFocus = NAME_FIELD;
+        if (vschc_is_empty_str( NAME_FIELD.val() )) {
+            controlToFocus = NAME_FIELD;
+        }
+
+        if (controlToFocus) {
+            controlToFocus.focus();
+        } else {
+            vschc_add_header_row();
+        }
+    });
+    VALUE_FIELD.appendTo( NEW_ROW.find('.vschc-value') );
+
+    const REMOVE_BTN = jQuery('<a class="btn btn-sm btn-danger align-middle vschc-remove-btn" title="Remove Header">' + 
+                              '<i class="fa fa-trash" aria-hidden="true"></i>' + 
+                              '</a>');
+    REMOVE_BTN.on('click', function() {
+        NEW_ROW.remove();
+
+        vschc_update_header_area();
+    });
+    REMOVE_BTN.appendTo( NEW_ROW.find('.vschc-actions') );
+
+    if (arguments.length > 0) {
+        NAME_FIELD.val( vschc_to_string(name) );
+        VALUE_FIELD.val( vschc_to_string(value) );
     }
 
-    if (controlToFocus) {
-        controlToFocus.focus();
-    }
+    NEW_ROW.appendTo( TABLE_BODY );
+
+    NAME_FIELD.focus();
+
+    return NEW_ROW;
 }
 
 function vschc_auto_add_content_type_header(mime) {
@@ -1398,7 +1378,7 @@ jQuery(() => {
 
     jQuery('#vschc-add-header-btn').on('click', function() {
         vschc_add_header_row();
-    });
+    });    
 
     jQuery('#vschc-input-url-group .input-group-append').on('click', function() {
         const URL_FIELD = jQuery('#vschc-input-url');
@@ -1581,6 +1561,85 @@ jQuery(() => {
         RESET_FORM();
 
         WIN.modal('show');
+    });
+
+    jQuery('#vschc-import-headers-btn').on('click', function() {
+        const WIN = jQuery('#vschc-import-headers-modal');
+        const WIN_FOOTER = WIN.find('.modal-footer');
+
+        const HEADER_LIST_FIELD = WIN.find('.modal-body textarea');
+        HEADER_LIST_FIELD.val('');
+
+        WIN_FOOTER.find('.vschc-import-btn').off('click').on('click', function() {
+            const HEADERS = vschc_to_string( HEADER_LIST_FIELD.val() ).split("\n").filter(l => {
+                return !vschc_is_empty_str( l );
+            }).map(l => {
+                let name;
+                let value = '';
+
+                const SEP = l.indexOf(':');
+                if (SEP > -1) {
+                    name = l.substr(0, SEP);
+                    value = l.substr(SEP + 1);
+                } else {
+                    name = l;
+                }
+
+                return {
+                    name: name.trim(),
+                    value: value.trim(),
+                };
+            });
+
+            if (HEADERS.length < 1) {
+                HEADER_LIST_FIELD.focus();
+                return;
+            }
+
+            for (const H of HEADERS) {
+                let matchingRow = false;
+
+                jQuery('#vschc-headers-card .card-body table tr.vschc-header-row').each(function() {
+                    if (false !== matchingRow) {
+                        return;
+                    }
+
+                    const ROW = jQuery(this);
+
+                    const NAME = vschc_normalize_str( ROW.find('.vschc-name input').val() );
+                    const VALUE = vschc_to_string( ROW.find('.vschc-value input').val() );
+
+                    if (vschc_normalize_str(H.name) === NAME) {
+                        matchingRow = ROW;
+                    } else {
+                        if (vschc_is_empty_str(NAME) && vschc_is_empty_str(VALUE)) {
+                            matchingRow = ROW;
+                        }
+                    }
+                });
+
+                if (false === matchingRow) {
+                    vschc_add_header_row(H.name, H.value);
+                } else {
+                    matchingRow.find('.vschc-name input')
+                               .val( H.name );
+
+                    matchingRow.find('.vschc-value input')
+                               .val( H.value );
+                }
+            }
+
+            WIN.modal('hide');
+        });
+
+        WIN.modal('show');
+    });
+
+    jQuery('#vschc-import-headers-modal').on('shown.bs.modal', function () {
+        const WIN = jQuery(this);
+
+        WIN.find('.modal-body textarea')
+           .focus();
     });
 });
 

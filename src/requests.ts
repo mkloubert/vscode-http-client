@@ -466,6 +466,8 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
                 title,
                 showOptions,
                 {
+                    enableCommandUris: true,
+                    enableFindWidget: true,
                     enableScripts: true,
                     retainContextWhenHidden: true,
                     localResourceRoots: vschc.getWebViewResourceUris(),
@@ -718,7 +720,7 @@ export class HTTPRequest extends HTTPRequestBase {
                 break;
 
             case 'log':
-                console.log(`[vscode-http-client] '${ msg.data.message }'`);
+                console.log(`[vscode-http-client] '${ vscode_helpers.toStringSafe(msg.data.message) }'`);
                 break;
 
             case 'onLoaded':
@@ -899,11 +901,17 @@ export class HTTPRequest extends HTTPRequestBase {
 
     <div id="vschc-headers-card-accordion">
         <div class="vschc-card card" id="vschc-headers-card">
-            <div class="card-header bg-info text-white" id="vschc-headers-card-heading">
-                <span class="align-middle" data-toggle="collapse" data-target="#vschc-headers-card-body" aria-expanded="true" aria-controls="vschc-headers-card-body">Custom Headers</span>
+            <div class="card-header bg-info" id="vschc-headers-card-heading">
+                <span class="align-middle text-white" data-toggle="collapse" data-target="#vschc-headers-card-body" aria-expanded="true" aria-controls="vschc-headers-card-body">
+                    Custom Headers
+                </span>
 
                 <a class="btn btn-danger btn-sm float-right" id="vschc-reset-all-headers-btn" title="Remove All Headers">
                     <i class="fa fa-eraser" aria-hidden="true"></i>
+                </a>
+
+                <a class="btn btn-secondary btn-sm float-right" id="vschc-import-headers-btn" title="Import Header List">
+                    <i class="fa fa-arrow-circle-o-down text-dark" aria-hidden="true"></i>
                 </a>
 
                 <a class="btn btn-dark btn-sm float-right" id="vschc-add-header-btn" title="Add New Header">
@@ -968,6 +976,32 @@ export class HTTPRequest extends HTTPRequestBase {
         <a type="button" class="btn btn-success vschc-update-btn">
             <i class="fa fa-floppy-o" aria-hidden="true"></i>
             <span>Update</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" tabindex="-1" role="dialog" id="vschc-import-headers-modal">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Import Header List</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true" class="text-white">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form>
+          <textarea class="form-control" rows="5" placeholder="Enter one header and its value per line, like: 'X-Header: Header value'"></textarea>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <a type="button" class="btn btn-success vschc-import-btn">
+            <i class="fa fa-floppy-o" aria-hidden="true"></i>
+            <span>Import</span>
         </a>
       </div>
     </div>

@@ -138,7 +138,8 @@
     cursor: pointer;
 }
 
-#vschc-edit-url-parameters-modal .modal-dialog {
+#vschc-edit-url-parameters-modal .modal-dialog,
+#vschc-import-headers-modal .modal-dialog {
     max-width: 75% !important;
 }
 
@@ -160,6 +161,7 @@
     overflow-y: auto;
 }
 
-#vschc-edit-url-parameters-modal .modal-footer .btn .fa {
+#vschc-edit-url-parameters-modal .modal-footer .btn .fa,
+#vschc-import-headers-modal .modal-footer .btn .fa {
     margin-right: 8px;
 }
