@@ -85,24 +85,7 @@ export interface RequestData {
     /**
      * The body.
      */
-    body: {
-        /**
-         * The content for the body field.
-         */
-        content: string | false;
-        /**
-         * The path of the file.
-         */
-        file: string | false;
-        /**
-         * The file size.
-         */
-        fileSize: number | false;
-        /**
-         * The MIME type.
-         */
-        mime?: string | false;
-    };
+    body: RequestDataBody;
     /**
      * Headers.
      */
@@ -114,11 +97,33 @@ export interface RequestData {
     /**
      * The title of the request.
      */
-    title: string;
+    title: string | false;
     /**
      * The URL.
      */
     url: string;
+}
+
+/**
+ * Body for request data.
+ */
+export interface RequestDataBody {
+    /**
+     * The content for the body field.
+     */
+    content: string | false;
+    /**
+     * The path of the file.
+     */
+    file: string | false;
+    /**
+     * The file size.
+     */
+    fileSize: number | false;
+    /**
+     * The MIME type.
+     */
+    mime?: string | false;
 }
 
 interface SaveContentData {
@@ -652,6 +657,22 @@ export class HTTPRequest extends HTTPRequestBase {
         });
     }
 
+    private async importHTTPFile() {
+        const ME = this;
+
+        await vschc.openFiles(async (files) => {
+            const REQUEST = await fromHTTPFile( files[0].fsPath );
+            if (REQUEST) {
+                await ME.importRequestCompleted( REQUEST );
+            }
+        }, {
+            filters: {
+                "HTTP File": [ 'http' ]
+            },
+            openLabel: "Import HTTP File",
+        });
+    }
+
     private async importRequest() {
         await vschc.openFiles(async (files) => {
             const DATA = (await FSExtra.readFile(files[0].fsPath)).toString('utf8');
@@ -709,6 +730,10 @@ export class HTTPRequest extends HTTPRequestBase {
 
             case 'exportRequest':
                 await this.exportRequest( msg.data );
+                break;
+
+            case 'importHTTPFile':
+                await this.importHTTPFile();
                 break;
 
             case 'importRequest':
@@ -1017,7 +1042,11 @@ export class HTTPRequest extends HTTPRequestBase {
 </a>
 
 <a class="btn btn-secondary btn-sm" id="vschc-export-request-btn" title="Save Request Settings To File">
-    <i class="fa fa-pencil-square-o text-dark" aria-hidden="true"></i>
+    <i class="fa fa-floppy-o text-dark" aria-hidden="true"></i>
+</a>
+
+<a class="btn btn-secondary btn-sm" id="vschc-import-http-file-btn" title="Import HTTP File">
+    <i class="fa fa-file-text text-dark" aria-hidden="true"></i>
 </a>
 
 <a class="btn btn-primary btn-sm" id="vschc-clone-request-btn" title="Clone The Settings Of That Request">
@@ -1177,6 +1206,8 @@ export class HTTPRequest extends HTTPRequestBase {
                     let err: any;
                     let result: vschc_http.SendHTTPRequestResult;
                     try {
+                        client.setupFromActiveWorkspace();
+
                         result = await client.send(cancelTokenSrc.token);
                     } catch (e) {
                         err = e;
@@ -1291,6 +1322,143 @@ export function addRequest(request: IHTTPRequest) {
     }
 
     return false;
+}
+
+/**
+ * Creates a request data object from a HTTP file.
+ *
+ * @param {string} file The path to the file.
+ *
+ * @return {RequestData|false} The new object or (false) if failed.
+ */
+export async function fromHTTPFile(file: string) {
+    file = vscode_helpers.toStringSafe(file);
+
+    let data: RequestData | false = false;
+
+    const CRLF = vscode_helpers.toEOL( vscode.EndOfLine.CRLF );
+
+    const HTTP = await FSExtra.readFile(file, 'ascii');
+    const HTTP_LINES = vscode_helpers.from( HTTP.split(CRLF) ).skipWhile(x => {
+        return vscode_helpers.isEmptyString(x);
+    }).toArray();
+
+    if (HTTP_LINES.length > 0) {
+        let body: Buffer;
+        let headers: any = {};
+        let method: string;
+        let mime: string | false = '';
+        let url = '';
+
+        const FIRST_LINE = HTTP_LINES[0].trim();
+
+        const METHOD_URL_SEP = FIRST_LINE.indexOf(' ');
+        if (METHOD_URL_SEP > -1) {
+            method = FIRST_LINE.substr(0, METHOD_URL_SEP).trim();
+
+            const URL_VERSION_SEP = FIRST_LINE.lastIndexOf(' ');
+            if (URL_VERSION_SEP > -1) {
+                // 012345678901234 [15]
+                // abcdef bcd jaka
+                // POST https://example.com/api/comments/1 HTTP/1.1
+
+                // 34 = 48
+
+                url = FIRST_LINE.substr(METHOD_URL_SEP + 1,
+                                        URL_VERSION_SEP - METHOD_URL_SEP - 1);
+            } else {
+                url = FIRST_LINE.substr(METHOD_URL_SEP + 1);
+            }
+        } else {
+            method = FIRST_LINE;
+        }
+
+        method = method.toUpperCase().trim();
+        if ('' === method) {
+            method = 'GET';
+        }
+
+        url = vscode_helpers.toStringSafe(url).trim();
+
+        const HEADER_LINES = vscode_helpers.from( HTTP_LINES ).skip(1).select(l => {
+            return l.trim();
+        }).takeWhile(l => '' !== l).forEach(l => {
+            let name: string;
+            let value: string;
+
+            const NAME_VALUE_SEP = l.indexOf(':');
+            if (NAME_VALUE_SEP > -1) {
+                name = l.substr(0, NAME_VALUE_SEP);
+                value = l.substr(NAME_VALUE_SEP + 1);
+            } else {
+                name = l;
+            }
+
+            name = vscode_helpers.toStringSafe(name).trim();
+            if ('' !== name) {
+                headers[ name ] = vscode_helpers.toStringSafe(value).trim();
+            }
+        });
+
+        for (const H in headers) {
+            const NAME = vscode_helpers.normalizeString(H);
+            const VALUE = headers[H];
+
+            switch (NAME) {
+                case 'content-type':
+                    mime = vscode_helpers.from(VALUE).takeWhile(c => {
+                        return ';' !== c;
+                    }).joinToString('');
+                    break;
+            }
+        }
+
+        mime = vscode_helpers.normalizeString( mime );
+        if ('' === mime) {
+            mime = false;
+        }
+
+        body = new Buffer(
+            vscode_helpers.from( HTTP_LINES ).skipWhile(l => {
+                return !vscode_helpers.isEmptyString(l);
+            }).skip(1).joinToString(CRLF),
+            'ascii'
+        );
+
+        let requestBody: RequestDataBody = {
+            content: false,
+            file: false,
+            fileSize: false,
+            mime: mime,
+        };
+        if (Buffer.isBuffer( body )) {
+            let fileSuffix: string | false = false;
+            if (false !== mime) {
+                fileSuffix = MimeTypes.extension( mime );
+            }
+
+            await vscode_helpers.tempFile(async (bodyFile) => {
+                await FSExtra.writeFile(bodyFile, body);
+
+                requestBody.content = await FSExtra.readFile(bodyFile, 'base64');
+                requestBody.file = bodyFile;
+                requestBody.fileSize = (await FSExtra.lstat(bodyFile)).size;
+            }, {
+                suffix: false === fileSuffix ? ''
+                                             : ('.' + fileSuffix),
+            });
+        }
+
+        data = {
+            body: requestBody,
+            headers: headers,
+            method: method,
+            title: false,
+            url: url,
+        };
+    }
+
+    return data;
 }
 
 /**

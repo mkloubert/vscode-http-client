@@ -1046,9 +1046,12 @@ jQuery(() => {
 
                     jQuery('#vschc-input-url').val( '' + url );      
                     METHOD_LIST.val( method )
-                               .trigger('change');;              
-                    jQuery('#vschc-input-title').val( '' + title )
-                                                .trigger('change');
+                               .trigger('change');
+                    
+                    if (false !== title) {
+                        jQuery('#vschc-input-title').val( '' + vschc_to_string(title) )
+                                                    .trigger('change');
+                    }
 
                     if (body) {
                         if (body.file) {
@@ -1640,6 +1643,10 @@ jQuery(() => {
 
         WIN.find('.modal-body textarea')
            .focus();
+    });
+
+    jQuery('#vschc-import-http-file-btn').on('click', function() {
+        vschc_post('importHTTPFile');
     });
 });
 

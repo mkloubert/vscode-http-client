@@ -36,6 +36,10 @@ export interface Config extends vscode.WorkspaceConfiguration {
      * Opens a new request on startup or not.
      */
     readonly openNewOnStartup?: boolean;
+    /**
+     * Reject unauthorized SSL certificates or not.
+     */
+    readonly rejectUnauthorized?: boolean;
 }
 
 /**

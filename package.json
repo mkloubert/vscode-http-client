@@ -2,7 +2,7 @@
     "name": "vscode-http-client",
     "displayName": "HTTP Client",
     "description": "Simple way to do HTTP requests.",
-    "version": "0.28.0",
+    "version": "0.29.0",
     "publisher": "mkloubert",
     "engines": {
         "vscode": "^1.23.0"
@@ -95,6 +95,11 @@
                         },
                         "openNewOnStartup": {
                             "description": "Opens a new request on startup or not.",
+                            "type": "boolean",
+                            "default": false
+                        },
+                        "rejectUnauthorized": {
+                            "description": "Reject unauthorized SSL certificates or not.",
                             "type": "boolean",
                             "default": false
                         }
@@ -190,6 +195,6 @@
         "node-enumerable": "^3.9.0",
         "sanitize-filename": "^1.6.1",
         "uuid": "^3.2.1",
-        "vscode-helpers": "^2.0.2"
+        "vscode-helpers": "^2.1.1"
     }
 }

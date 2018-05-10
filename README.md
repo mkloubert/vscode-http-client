@@ -39,11 +39,12 @@ Simple way to do [HTTP requests](https://en.wikipedia.org/wiki/Hypertext_Transfe
 3. [Enhancements](#enhancements-)
    * [Authorization](#authorization-)
      * [Basic Auth](#basic-auth-)
-4. [Customizations](#customizations-)
+4. [HTTP files](#http-files-)
+5. [Customizations](#customizations-)
    * [CSS](#css-)
-5. [Syntaxes](#syntaxes-)
-6. [Support and contribute](#support-and-contribute-)
-7. [Related projects](#related-projects-)
+6. [Syntaxes](#syntaxes-)
+7. [Support and contribute](#support-and-contribute-)
+8. [Related projects](#related-projects-)
    * [node-enumerable](#node-enumerable-)
    * [vscode-helpers](#vscode-helpers-)
 
@@ -76,6 +77,7 @@ Add a `http.client` section:
 | ---- | --------- |
 | `open` | An array of one or more paths to `.http-request` files, which should be opened on startup. |
 | `openNewOnStartup` | `(true)`, if a new tab with an empty request should be opened on startup. Default: `(false)` |
+| `rejectUnauthorized` | `(true)`, to reject unauthorized, self-signed SSL certificates. Default: `(false)` |
 
 ### How to execute [[&uarr;](#how-to-use-)]
 
@@ -118,9 +120,11 @@ for (let i = 0; i < USERS.length; i++) {
     if (cancel.isCancellationRequested) {
         break;  // user wants to cancel
     }
+    
+    const U = USERS[i];
 
     try {
-        const U = USERS[i];
+        output.append(`Sending request for '${ U }' ... `);
 
         const REQUEST = new_request();
 
@@ -140,8 +144,6 @@ for (let i = 0; i < USERS.length; i++) {
         if ('MK' === REQUEST.header('X-User-Name')) {
             REQUEST.param('debug', 'true');
         }
-
-        output.append(`Sending request for '${ U }' ... `);
 
         await REQUEST.send();
 
@@ -470,6 +472,23 @@ Authorization: Basic mkloubert:mypassword
 
 Keep in mind: The string right to `Basic` will be trimmed!
 
+## HTTP files [[&uarr;](#table-of-contents)]
+
+Requests can be imported from or to HTTP files.
+
+Those files are encoded in [ASCII](https://en.wikipedia.org/wiki/ASCII) and their lines are separated by CRLF (`\r\n`):
+
+```http
+POST https://example.com/users/1 HTTP/1.1
+Content-type: application/json; charset=utf8
+X-User: 1
+
+{
+    "id": 1,
+    "name": "mkloubert"
+}
+```
+
 ## Customizations [[&uarr;](#table-of-contents)]
 
 ### CSS [[&uarr;](#customizations-)]
@@ -478,7 +497,7 @@ You can save a custom CSS file, called `custom.css`, inside the extension's fold
 
 ## Syntaxes [[&uarr;](#table-of-contents)]
 
-[Syntax highlighting](https://highlightjs.org/) is supported all languages, which are supported by [highlight.js](https://highlightjs.org/).
+[Syntax highlighting](https://highlightjs.org/) supports all languages, which are part of [highlight.js](https://highlightjs.org/).
 
 ## Support and contribute [[&uarr;](#table-of-contents)]
 

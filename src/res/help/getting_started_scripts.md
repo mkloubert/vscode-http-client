@@ -22,9 +22,11 @@ for (let i = 0; i < USERS.length; i++) {
     if (cancel.isCancellationRequested) {
         break;  // user wants to cancel
     }
+    
+    const U = USERS[i];
 
-    try {
-        const U = USERS[i];
+    try {        
+        output.append(`Sending request for '${ U }' ... `);
 
         const REQUEST = new_request();
 
@@ -50,8 +52,6 @@ for (let i = 0; i < USERS.length; i++) {
         if ('MK' === REQUEST.header('X-User-Name')) {
             REQUEST.param('debug', 'true');
         }
-
-        output.append(`Sending request for '${ U }' ... `);
 
         await REQUEST.send();
 

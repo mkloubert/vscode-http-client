@@ -25,6 +25,7 @@ import * as vschc from './extension';
 import * as vschc_requests from './requests';
 import * as vscode from 'vscode';
 import * as vscode_helpers from 'vscode-helpers';
+import * as vscode_workspaces from './workspaces';
 
 
 /**
@@ -96,6 +97,7 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
     private _noResult = false;
     private _onDidSend: OnDidSendListener[];
     private _query: any;
+    private _rejectUnauthorized = false;
     private _timeout: any;
     private _url: any;
 
@@ -257,27 +259,18 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
     }
 
     /**
-     * Gets or sets the custom timeout.
+     * Gets or sets the 'rejectUnauthorized' for secure HTTP requests.
      *
      * @param {any} [newValue] The new value.
      *
-     * @return {HTTPClientValue<number>}
+     * @return {boolean|this}
      */
-    public timeout(newValue?: any): HTTPClientValue<number> {
+    public rejectUnauthorized(newValue?: any): boolean | this {
         if (arguments.length < 1) {
-            return this._timeout;
+            return this._rejectUnauthorized;
         }
 
-        if (_.isSymbol(newValue)) {
-            newValue = vschc.IS_UNSET;
-        } else {
-            newValue = parseInt( vscode_helpers.toStringSafe(newValue).trim() );
-            if (isNaN(newValue)) {
-                newValue = undefined;
-            }
-        }
-
-        this._timeout = newValue;
+        this._rejectUnauthorized = vscode_helpers.toBooleanSafe(newValue);
         return this;
     }
 
@@ -349,7 +342,7 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
                 let createRequest: (() => HTTP.ClientRequest) | false = false;
 
                 let newRequest: HTTP.ClientRequest;
-                const OPTS: HTTP.RequestOptions = {
+                const OPTS: HTTP.RequestOptions | HTTPs.RequestOptions = {
                     auth: REQUEST_URL.auth,
                     headers: {},
                     hostname: vscode_helpers.toStringSafe(REQUEST_URL.hostname),
@@ -458,23 +451,28 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
                 switch (PROTOCOL) {
                     case 'http:':
                         createRequest = () => {
-                            OPTS.protocol = 'http:';
-                            if (isNaN(<any>OPTS.port)) {
-                                OPTS.port = 80;
+                            const HTTP_OPTS = <HTTP.RequestOptions>OPTS;
+
+                            HTTP_OPTS.protocol = 'http:';
+                            if (isNaN(<any>HTTP_OPTS.port)) {
+                                HTTP_OPTS.port = 80;
                             }
 
-                            return HTTP.request(OPTS, CALLBACK);
+                            return HTTP.request(HTTP_OPTS, CALLBACK);
                         };
                         break;
 
                     case 'https:':
                         createRequest = () => {
-                            OPTS.protocol = 'https:';
-                            if (isNaN(<any>OPTS.port)) {
-                                OPTS.port = 443;
+                            const HTTPs_OPTS = <HTTPs.RequestOptions>OPTS;
+                            HTTPs_OPTS.rejectUnauthorized = vscode_helpers.toBooleanSafe(ME._rejectUnauthorized);
+
+                            HTTPs_OPTS.protocol = 'https:';
+                            if (isNaN(<any>HTTPs_OPTS.port)) {
+                                HTTPs_OPTS.port = 443;
                             }
 
-                            return HTTPs.request(OPTS, CALLBACK);
+                            return HTTPs.request(HTTPs_OPTS, CALLBACK);
                         };
                         break;
                 }
@@ -535,6 +533,48 @@ export class HTTPClient extends vscode_helpers.DisposableBase {
                 COMPLETED_SYNC(e);
             }
         });
+    }
+
+    /**
+     * Sets up settings from active workspace.
+     *
+     * @return this
+     */
+    public setupFromActiveWorkspace() {
+        const ACTIVE_WORKSPACE = vscode_workspaces.getActiveWorkspace();
+        if (ACTIVE_WORKSPACE) {
+            const CFG = ACTIVE_WORKSPACE.config;
+            if (CFG) {
+                this._rejectUnauthorized = vscode_helpers.toBooleanSafe(CFG.rejectUnauthorized);
+            }
+        }
+
+        return this;
+    }
+
+    /**
+     * Gets or sets the custom timeout.
+     *
+     * @param {any} [newValue] The new value.
+     *
+     * @return {HTTPClientValue<number>}
+     */
+    public timeout(newValue?: any): HTTPClientValue<number> {
+        if (arguments.length < 1) {
+            return this._timeout;
+        }
+
+        if (_.isSymbol(newValue)) {
+            newValue = vschc.IS_UNSET;
+        } else {
+            newValue = parseInt( vscode_helpers.toStringSafe(newValue).trim() );
+            if (isNaN(newValue)) {
+                newValue = undefined;
+            }
+        }
+
+        this._timeout = newValue;
+        return this;
     }
 
     /**

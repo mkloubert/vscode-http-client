@@ -131,7 +131,7 @@
 }
 
 #vschc-clone-request-btn {
-    margin-left: 24px;
+    margin-left: 16px;
 }
 
 #vschc-input-url-group .input-group-append {
@@ -164,4 +164,8 @@
 #vschc-edit-url-parameters-modal .modal-footer .btn .fa,
 #vschc-import-headers-modal .modal-footer .btn .fa {
     margin-right: 8px;
+}
+
+#vschc-import-http-file-btn {
+    margin-left: 16px;
 }
