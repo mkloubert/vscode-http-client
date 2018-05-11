@@ -16,6 +16,7 @@
  */
 
 import * as _ from 'lodash';
+import * as Crypto from 'crypto';
 import * as FSExtra from 'fs-extra';
 import * as HTTP from 'http';
 import * as HTTPs from 'https';
@@ -657,6 +658,36 @@ export class HTTPRequest extends HTTPRequestBase {
         });
     }
 
+    private async getBodyLength(request: RequestData) {
+        let length: number | false = false;
+
+        if (request.body) {
+            if (false !== request.body.content) {
+                length = (new Buffer(request.body.content.trim(), 'base64')).length;
+            }
+        }
+
+        await this.postMessage('getBodyLengthCompleted',
+                               length);
+    }
+
+    private async getBodyMD5(request: RequestData) {
+        let md5: string | false = false;
+
+        if (request.body) {
+            if (false !== request.body.content) {
+                const DIGEST = Crypto.createHash('md5');
+
+                DIGEST.update( new Buffer(request.body.content.trim(), 'base64') );
+
+                md5 = DIGEST.digest().toString('base64');
+            }
+        }
+
+        await this.postMessage('getBodyMD5Completed',
+                               md5);
+    }
+
     private async importHTTPFile() {
         const ME = this;
 
@@ -730,6 +761,14 @@ export class HTTPRequest extends HTTPRequestBase {
 
             case 'exportRequest':
                 await this.exportRequest( msg.data );
+                break;
+
+            case 'getBodyLength':
+                await this.getBodyLength( msg.data );
+                break;
+
+            case 'getBodyMD5':
+                await this.getBodyMD5( msg.data );
                 break;
 
             case 'importHTTPFile':
@@ -883,7 +922,7 @@ export class HTTPRequest extends HTTPRequestBase {
                         </div>
                     </div>
 
-                    <div class="col-sm-2">
+                    <div class="col-sm-2" id="vschc-input-method-col">
                         <select class="form-control" id="vschc-input-method">
                             <option>DELETE</option>
                             <option selected>GET</option>
@@ -927,7 +966,7 @@ export class HTTPRequest extends HTTPRequestBase {
     <div id="vschc-headers-card-accordion">
         <div class="vschc-card card" id="vschc-headers-card">
             <div class="card-header bg-info" id="vschc-headers-card-heading">
-                <span class="align-middle text-white" data-toggle="collapse" data-target="#vschc-headers-card-body" aria-expanded="true" aria-controls="vschc-headers-card-body">
+                <span title="Click Here To (Un)Collapse" class="align-middle text-white" data-toggle="collapse" data-target="#vschc-headers-card-body" aria-expanded="true" aria-controls="vschc-headers-card-body">
                     Custom Headers
                 </span>
 
@@ -946,6 +985,16 @@ export class HTTPRequest extends HTTPRequestBase {
 
             <div id="vschc-headers-card-body" class="collapse show" aria-labelledby="vschc-headers-card-heading" data-parent="#vschc-headers-card-accordion">
                 <div class="card-body"></div>
+            </div>
+
+            <div class="card-footer">
+                <a title="Insert 'Content-MD5' Header" class="btn btn-sm btn-dark float-right align-middle" id="vschc-insert-md5-header-btn">
+                    MD5
+                </a>
+
+                <a title="Insert 'Content-Length' Header" class="btn btn-sm btn-dark float-right align-middle" id="vschc-insert-length-header-btn">
+                    LEN
+                </a>
             </div>
         </div>
     </div>
@@ -1105,12 +1154,10 @@ export class HTTPRequest extends HTTPRequestBase {
     }
 
     private async openReponseInEditor(response: SendRequestResponse) {
-        const EDITOR = await vscode.workspace.openTextDocument({
+        await vscode_helpers.openAndShowTextDocument({
             content: this.createHTTPFromResponse(response).toString('ascii'),
             language: 'http',
         });
-
-        await vscode.window.showTextDocument( EDITOR );
     }
 
     private async openRequestInEditor(response: SendRequestResponse) {
@@ -1140,12 +1187,10 @@ export class HTTPRequest extends HTTPRequestBase {
             }
         }
 
-        const EDITOR = await vscode.workspace.openTextDocument({
+        await vscode_helpers.openAndShowTextDocument({
             content: data.toString('ascii'),
             language: 'http',
         });
-
-        await vscode.window.showTextDocument( EDITOR );
     }
 
     private async resetAllHeaders() {
@@ -1442,7 +1487,7 @@ export async function fromHTTPFile(file: string) {
 
                 requestBody.content = await FSExtra.readFile(bodyFile, 'base64');
                 requestBody.file = bodyFile;
-                requestBody.fileSize = (await FSExtra.lstat(bodyFile)).size;
+                requestBody.fileSize = await vscode_helpers.size(bodyFile);
             }, {
                 suffix: false === fileSuffix ? ''
                                              : ('.' + fileSuffix),

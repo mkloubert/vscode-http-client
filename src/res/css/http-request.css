@@ -169,3 +169,7 @@
 #vschc-import-http-file-btn {
     margin-left: 16px;
 }
+
+#vschc-headers-card .card-footer .btn {
+    margin-left: 8px;
+}

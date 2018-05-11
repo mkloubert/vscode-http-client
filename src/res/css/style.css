@@ -35,3 +35,7 @@ body main .vschc-card {
 #vschc-social-media-btns .btn {
     margin-left: 0 !important;
 }
+
+.select2 {
+    width:100% !important;
+}

@@ -116,6 +116,19 @@ export interface ResourceUriResolver {
 
 
 /**
+ * Returns the (possible) URI of the 'custom.css' file for the views.
+ *
+ * @return {vscode.Uri} The URI of (a) 'custom.css' file.
+ */
+export function getCustomCSSUri() {
+    return vscode.Uri.file(
+        Path.resolve(
+            Path.join(vschc.getUsersExtensionDir(), 'custom.css')
+        )
+    );
+}
+
+/**
  * Generates the common content for footer.
  *
  * @param {GenerateFooterOptions} opts Options.
@@ -125,9 +138,7 @@ export interface ResourceUriResolver {
 export function generateFooter(opts: GenerateFooterOptions) {
     let customStyle: vscode.Uri | false = false;
     try {
-        const CUSTOM_CSS_FILE = Path.resolve(
-            Path.join(vschc.getUsersExtensionDir(), 'custom.css')
-        );
+        const CUSTOM_CSS_FILE = getCustomCSSUri().fsPath;
 
         if (vscode_helpers.isFileSync( CUSTOM_CSS_FILE )) {
             customStyle = vscode.Uri.file( CUSTOM_CSS_FILE ).with({
@@ -138,7 +149,7 @@ export function generateFooter(opts: GenerateFooterOptions) {
 
     return `
     <link rel="stylesheet" href="${ opts.getResourceUri('css/style.css') }">
-    <link rel="stylesheet" href="${ opts.getResourceUri('css/' + opts.styleFile + '.css') }">
+    <link rel="stylesheet" href="${ opts.getResourceUri('css/' + opts.styleFile + '.css') }" vschc-style="custom">
 
 ${ !customStyle ? '' : `<link rel="stylesheet" href="${ customStyle }">` }
 
@@ -173,13 +184,16 @@ export function generateHeader(opts: GenerateHeaderOptions) {
         <link rel="stylesheet" href="${ opts.getResourceUri('css/font-awesome.css') }">
         <link rel="stylesheet" href="${ opts.getResourceUri('css/hljs-atom-one-dark.css') }">
         <link rel="stylesheet" href="${ STYLE }" vschc-style="bootstrap">
+
         <link rel="stylesheet" href="${ opts.getResourceUri('css/select2.min.css') }">
+        <link rel="stylesheet" href="${ opts.getResourceUri('css/select2-bootstrap4.min.css') }">
 
         <script src="${ opts.getResourceUri('js/moment-with-locales.min.js') }"></script>
         <script src="${ opts.getResourceUri('js/highlight.pack.js') }"></script>
         <script src="${ opts.getResourceUri('js/showdown.min.js') }"></script>
         <script src="${ opts.getResourceUri('js/jquery.min.js') }"></script>
         <script src="${ opts.getResourceUri('js/bootstrap.bundle.min.js') }"></script>
+
         <script src="${ opts.getResourceUri('js/select2.full.min.js') }"></script>
 
         <script>

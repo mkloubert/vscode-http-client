@@ -88,7 +88,7 @@ Press `F1` and enter one of the following commands:
 | `HTTP Client: Change style ...` | Changes the CSS style for request forms. | `extension.http.client.changeStyle` |
 | `HTTP Client: Create new script ...` | Opens a new editor with an example script. | `extension.http.client.newRequestScript` |
 | `HTTP Client: New HTTP request ...` | Opens a new HTTP request form. | `extension.http.client.newRequest` |
-| `HTTP Client: New HTTP request (split view)...` | Opens a new HTTP request form by splitting the current view. | `extension.http.client.newRequestSplitView` |
+| `HTTP Client: New HTTP request (split view) ...` | Opens a new HTTP request form by splitting the current view. | `extension.http.client.newRequestSplitView` |
 | `HTTP Client: Send editor content as HTTP request ...` | Uses the content of a visible editor as body for a HTTP request. | `extension.http.client.newRequestForEditor` |
 | `HTTP Client: Send file as HTTP request ...` | Uses a (local) file as body for a HTTP request. | `extension.http.client.newRequestFromFile` |
 | `HTTP Client: Show help ...` | Shows a new help tab. | `extension.http.client.showHelp` |

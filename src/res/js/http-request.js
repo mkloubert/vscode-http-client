@@ -88,30 +88,26 @@ function vschc_add_header_row(name, value) {
     return NEW_ROW;
 }
 
+function vschc_auto_add_content_length_header(size) {
+    size = parseInt( vschc_to_string(size).trim() );
+    if (isNaN(size)) {
+        return;
+    }
+
+    if ( !vschc_has_header('Content-Length') ) {
+        vschc_add_header_row('Content-Length',
+                             vschc_to_string(size));
+    }
+}
+
 function vschc_auto_add_content_type_header(mime) {
     mime = vschc_normalize_str(mime);
     if ('' === mime) {
         return;
     }
 
-    let addContentType = true;
-
-    const HEADERS_CARD      = jQuery('#vschc-headers-card');
-    const HEADERS_CARD_BODY = HEADERS_CARD.find('.card-body');
-
-    HEADERS_CARD_BODY.find('table tbody tr.vschc-header-row').each(function() {
-        const ROW = jQuery(this);
-
-        const NAME = vschc_normalize_str( ROW.find('.vschc-name input').val() );
-        if ('content-type' === NAME) {
-            addContentType = false;
-        }
-    });
-
-    if (addContentType) {
+    if ( !vschc_has_header('Content-Type') ) {
         vschc_add_header_row('Content-Type', mime);
-
-        vschc_remove_empty_headers();
     }
 }
 
@@ -753,6 +749,26 @@ function vschc_get_http_content_displayer(
     return contentDisplayer;
 }
 
+function vschc_has_header(headerName) {
+    headerName = vschc_normalize_str(headerName);
+
+    let found = false;
+
+    const HEADERS_CARD      = jQuery('#vschc-headers-card');
+    const HEADERS_CARD_BODY = HEADERS_CARD.find('.card-body');
+
+    HEADERS_CARD_BODY.find('table tbody tr.vschc-header-row').each(function() {
+        const ROW = jQuery(this);
+
+        const NAME = vschc_normalize_str( ROW.find('.vschc-name input').val() );
+        if (headerName === NAME) {
+            found = true;
+        }
+    });
+
+    return found;
+}
+
 function vschc_prepare_request() {
     const URL_FIELD    = jQuery('#vschc-input-url');
     const METHOD_FIELD = jQuery('#vschc-input-method');
@@ -775,20 +791,6 @@ function vschc_prepare_request() {
         title: TITLE_FIELD.val(),
         url: URL
     };
-}
-
-function vschc_remove_empty_headers() {
-    const HEADERS_CARD      = jQuery('#vschc-headers-card');
-    const HEADERS_CARD_BODY = HEADERS_CARD.find('.card-body');
-
-    HEADERS_CARD_BODY.find('table tbody tr.vschc-header-row').each(function() {
-        const ROW = jQuery(this);
-
-        const NAME = vschc_normalize_str( ROW.find('.vschc-name input').val() );
-        if ('' === NAME) {
-            ROW.remove();
-        }
-    });
 }
 
 function vschc_reset_body_file() {
@@ -893,14 +895,15 @@ function vschc_set_body_content_from_file(content) {
                 };
             }
         }
+
+        vschc_auto_add_content_length_header( content.size );
+        vschc_auto_add_content_type_header( content.mime );            
     } else {
         vschc_reset_body_file();
     }
 
     vschc_update_body_area();
     
-    vschc_auto_add_content_type_header( content.mime );
-
     if (contentDisplayer) {
         contentDisplayer();
     }
@@ -970,6 +973,11 @@ function vschc_update_response_button_states(areEnabled) {
         SEND_REQUEST_BTN.addClass('disabled');
     }
 }
+
+
+jQuery(() => {
+    jQuery.fn.select2.defaults.set('theme', 'bootstrap4');
+});
 
 jQuery(() => {
     jQuery('#vschc-input-method').select2({
@@ -1112,6 +1120,20 @@ jQuery(() => {
                     }
 
                     controlToFocus.focus();
+                }
+                break;
+
+            case 'getBodyLengthCompleted':
+                if (!isNaN( MSG.data )) {
+                    vschc_add_header_row('Content-Length',
+                                         vschc_to_string(MSG.data));
+                }
+                break;
+
+            case 'getBodyMD5Completed':
+                if (false !== MSG.data) {
+                    vschc_add_header_row('Content-MD5',
+                                         vschc_to_string(MSG.data).trim());
                 }
                 break;
 
@@ -1647,6 +1669,16 @@ jQuery(() => {
 
     jQuery('#vschc-import-http-file-btn').on('click', function() {
         vschc_post('importHTTPFile');
+    });
+
+    jQuery('#vschc-insert-md5-header-btn').on('click', function() {
+        vschc_post('getBodyMD5',
+                   vschc_prepare_request());
+    });
+
+    jQuery('#vschc-insert-length-header-btn').on('click', function() {
+        vschc_post('getBodyLength',
+                   vschc_prepare_request());
     });
 });
 
