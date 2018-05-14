@@ -1,10 +1,15 @@
 # Change Log (vscode-http-client)
 
-[![Share via Facebook](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/share/Facebook.png)](https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client&quote=Git%20Notify) [![Share via Twitter](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/share/Twitter.png)](https://twitter.com/intent/tweet?source=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client&text=Git%20Notify:%20https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client&via=mjkloubert) [![Share via Google+](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/share/Google+.png)](https://plus.google.com/share?url=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client) [![Share via Pinterest](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/share/Pinterest.png)](http://pinterest.com/pin/create/button/?url=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client&description=Visual%20Studio%20Code%20extension%2C%20which%20receives%20and%20shows%20git%20events%20from%20webhooks.) [![Share via Reddit](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/share/Reddit.png)](http://www.reddit.com/submit?url=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client&title=Git%20Notify) [![Share via LinkedIn](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/share/LinkedIn.png)](http://www.linkedin.com/shareArticle?mini=true&url=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client&title=Git%20Notify&summary=Visual%20Studio%20Code%20extension%2C%20which%20receives%20and%20shows%20git%20events%20from%20webhooks.&source=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client) [![Share via Wordpress](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/share/Wordpress.png)](http://wordpress.com/press-this.php?u=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client&quote=Git%20Notify&s=Visual%20Studio%20Code%20extension%2C%20which%20receives%20and%20shows%20git%20events%20from%20webhooks.) [![Share via Email](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/share/Email.png)](mailto:?subject=Git%20Notify&body=Visual%20Studio%20Code%20extension%2C%20which%20receives%20and%20shows%20git%20events%20from%20webhooks.:%20https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client)
+[![Share via Facebook](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/share/Facebook.png)](https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client&quote=HTTP%20Client) [![Share via Twitter](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/share/Twitter.png)](https://twitter.com/intent/tweet?source=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client&text=HTTP%20Client:%20https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client&via=mjkloubert) [![Share via Google+](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/share/Google+.png)](https://plus.google.com/share?url=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client) [![Share via Pinterest](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/share/Pinterest.png)](http://pinterest.com/pin/create/button/?url=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client&description=Visual%20Studio%20Code%20extension%2C%20which%20receives%20and%20shows%20git%20events%20from%20webhooks.) [![Share via Reddit](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/share/Reddit.png)](http://www.reddit.com/submit?url=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client&title=HTTP%20Client) [![Share via LinkedIn](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/share/LinkedIn.png)](http://www.linkedin.com/shareArticle?mini=true&url=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client&title=HTTP%20Client&summary=Visual%20Studio%20Code%20extension%2C%20which%20receives%20and%20shows%20git%20events%20from%20webhooks.&source=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client) [![Share via Wordpress](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/share/Wordpress.png)](http://wordpress.com/press-this.php?u=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client&quote=HTTP%20Client&s=Visual%20Studio%20Code%20extension%2C%20which%20receives%20and%20shows%20git%20events%20from%20webhooks.) [![Share via Email](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/share/Email.png)](mailto:?subject=HTTP%20Client&body=Visual%20Studio%20Code%20extension%2C%20which%20receives%20and%20shows%20git%20events%20from%20webhooks.:%20https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dmkloubert.vscode-http-client)
 
-## 0.30.0 (March 11th, 2018; auto request headers)
+## 0.31.0 (May 14th, 2018; npm updates)
 
-* can generate `Content-MD5` and `Content-Length`´from current body now:
+* updated the following [npm](https://www.npmjs.com/) modules:
+  * [moment-timezone](https://www.npmjs.com/package/moment-timezone) `^0.5.17`
+
+## 0.30.0 (May 11th, 2018; auto request headers)
+
+* can generate `Content-MD5` and `Content-Length` from current body now:
 
 ![Demo 10](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/demo10.gif)
 
@@ -14,7 +19,7 @@
 * updated [npm](https://www.npmjs.com/) modules:
   * [vscode-helpers](https://www.npmjs.com/package/vscode-helpers) `^2.2.0`
 
-## 0.29.0 (March 10th, 2018; import HTTP files)
+## 0.29.0 (May 10th, 2018; import HTTP files)
 
 * can import HTTP files into request form now
 
@@ -25,7 +30,7 @@
 * updated [npm](https://www.npmjs.com/) modules:
   * [vscode-helpers](https://www.npmjs.com/package/vscode-helpers) `^2.1.1`
 
-## 0.28.0 (March 9th, 2018; import header list)
+## 0.28.0 (May 9th, 2018; import header list)
 
 * implemeted simple way to import a list of request headers:
 
@@ -33,13 +38,13 @@
 
 * GUI improvements
 
-## 0.27.1 (March 8th, 2018; edit URL parameters)
+## 0.27.1 (May 8th, 2018; edit URL parameters)
 
 * can simply edit URL parameters now
 
 ![Demo 7](https://raw.githubusercontent.com/mkloubert/vscode-http-client/master/img/demo7.gif)
 
-## 0.26.0 (March 8th, 2018; help)
+## 0.26.0 (May 8th, 2018; help)
 
 * can open help tab via `HTTP Client: Show help ...` command now
 
@@ -47,7 +52,7 @@
 
 * documentation fixes
 
-## 0.25.0 (March 6th, 2018; redo specific requests)
+## 0.25.0 (May 6th, 2018; redo specific requests)
 
 * can redo specific requests now:
 
@@ -55,7 +60,7 @@
 
 * bugfixes and improvements
 
-## 0.24.0 (March 6th, 2018; scripts and styles)
+## 0.24.0 (May 6th, 2018; scripts and styles)
 
 * can clone settings to a new tab now:
 
@@ -83,7 +88,7 @@
 | `$html` | [node-html-entities](https://github.com/mdevils/node-html-entities) | HTML / XML parser. |
 | `$md` | [Marked](https://github.com/markedjs/marked) | [Markdown](https://en.wikipedia.org/wiki/Markdown) parser. |
 
-## 0.23.0 (March 5th, 2018; open response content in app)
+## 0.23.0 (May 5th, 2018; open response content in app)
 
 * can open response content in an app now
 
@@ -91,6 +96,6 @@
 
 * design fixes
 
-## 0.22.3 (March 4th, 2018; initial release)
+## 0.22.3 (May 4th, 2018; initial release)
 
 For more information about the extension, that a look at the [project page](https://github.com/mkloubert/vscode-http-client).

@@ -2,7 +2,7 @@
     "name": "vscode-http-client",
     "displayName": "HTTP Client",
     "description": "Simple way to do HTTP requests.",
-    "version": "0.30.0",
+    "version": "0.31.0",
     "publisher": "mkloubert",
     "engines": {
         "vscode": "^1.23.0"
@@ -196,7 +196,7 @@
         "merge-deep": "^3.0.1",
         "mime-types": "^2.1.18",
         "moment": "^2.22.1",
-        "moment-timezone": "^0.5.16",
+        "moment-timezone": "^0.5.17",
         "node-enumerable": "^3.9.0",
         "sanitize-filename": "^1.6.1",
         "uuid": "^3.2.1",
