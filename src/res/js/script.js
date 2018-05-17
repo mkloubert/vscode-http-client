@@ -75,6 +75,11 @@ function vschc_normalize_str(val) {
     return vschc_to_string(val).toLowerCase().trim();
 }
 
+function vschc_open_url(urlId) {
+    vschc_post('openKnownUrl',
+               vschc_normalize_str(urlId));
+}
+
 function vschc_post(command, data) {
     vscode.postMessage({
         command: vschc_to_string(command),
@@ -88,7 +93,7 @@ function vschc_showdown() {
         ghCodeBlocks: true,
         ghCompatibleHeaderId: true,
         headerLevelStart: 3,
-        openLinksInNewWindow: true,
+        openLinksInNewWindow: false,
         simpleLineBreaks: true,
         simplifiedAutoLink: true,
         tables: true
@@ -143,3 +148,49 @@ ${ val.stack }`;
 
     return '';
 }
+
+function vschc_update_markdown_links() {
+    const CONTENT = jQuery('.vschc-markdown');
+
+    CONTENT.find('a').each(function() {
+        const A = jQuery(this);
+        
+        const HREF = vschc_to_string( A.attr('href') );
+        A.attr('href', '#');
+
+        A.off('click').on('click', function(e) {
+            e.preventDefault();
+
+            vschc_post('openLink', HREF);
+        });
+    });
+}
+
+jQuery(() => {
+    jQuery('#vschc-to-top-btn').on('click', () => {
+        const BODY_TOP = jQuery('#vschc-body-top');
+
+        jQuery(document).scrollTop(
+            BODY_TOP.offset().top - BODY_TOP.outerHeight(true) - 24
+        );
+    });
+
+    jQuery('#vschc-to-bottom-btn').on('click', () => {
+        const BODY_BOTTOM = jQuery('#vschc-body-bottom');
+
+        jQuery(document).scrollTop(
+            BODY_BOTTOM.offset().top - BODY_BOTTOM.outerHeight(true) - 24
+        );
+    });
+
+    jQuery('.vschc-btn-with-known-url').on('click', function() {
+        const BTN = jQuery(this);
+
+        const URL_ID = vschc_normalize_str( BTN.attr('vschc-url') );
+        if ('' === URL_ID) {
+            return;
+        }
+
+        vschc_open_url(URL_ID);
+    });
+});

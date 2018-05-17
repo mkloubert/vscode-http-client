@@ -212,6 +212,11 @@ interface WebViewMessage extends vschc.WebViewMessage {
  * Name of an event that is invoked after a WebView panel has been disposed.
  */
 export const EVENT_WEBVIEWPANEL_DISPOSED = 'webviewpanel.disposed';
+const KNOWN_URLS = {
+    'github': 'https://github.com/mkloubert/vscode-http-client',
+    'paypal': 'https://twitter.com/mjkloubert',
+    'twitter': 'https://paypal.me/MarcelKloubert',
+};
 let nextHTTPRequestId = Number.MIN_SAFE_INTEGER;
 /**
  * The global list of requests.
@@ -482,8 +487,36 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
 
             newPanel.webview.onDidReceiveMessage((msg: WebViewMessage) => {
                 try {
-                    if (!_.isNil(msg)) {
-                        ME.onDidReceiveMessage(msg).then(() => {
+                    if (_.isNil(msg)) {
+                        return;
+                    }
+
+                    let action: Function = async () => {
+                        await ME.onDidReceiveMessage(msg);
+                    };
+
+                    switch (msg.command) {
+                        case 'openKnownUrl':
+                            const KU = KNOWN_URLS[ vscode_helpers.normalizeString(msg.data) ];
+                            if (!_.isNil(KU)) {
+                                action = async () => {
+                                    await vschc.open( KU );
+                                };
+                            }
+                            break;
+
+                        case 'openLink':
+                            const LINK = vscode_helpers.toStringSafe(msg.data).trim();
+                            if (LINK.toLowerCase().startsWith('http://') || LINK.toLowerCase().startsWith('https://')) {
+                                action = async () => {
+                                    await vschc.open( LINK );
+                                };
+                            }
+                            break;
+                    }
+
+                    if (action) {
+                        Promise.resolve( action() ).then(() => {
                         }, (err) => {
                             ME.showError(err);
                         });

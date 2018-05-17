@@ -8,6 +8,7 @@ body header .navbar form .btn {
 }
 
 body main {
+    padding-bottom: 70px;
     padding-top: 70px;
 }
 
@@ -38,4 +39,16 @@ body main .vschc-card {
 
 .select2 {
     width:100% !important;
+}
+
+#vschc-body-top {
+    display: none;
+}
+
+#vschc-buttons-on-bottom {
+    padding: 8px;
+}
+
+#vschc-buttons-on-bottom .btn {
+    margin-left: 8px;
 }

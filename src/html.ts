@@ -148,6 +148,18 @@ export function generateFooter(opts: GenerateFooterOptions) {
     } catch { }
 
     return `
+    <div id="vschc-body-bottom" class="clearfix"></div>
+
+    <div class="fixed-bottom" id="vschc-buttons-on-bottom">
+        <a class="btn btn-sm btn-secondary float-right" id="vschc-to-bottom-btn" title="Scoll To Bottom">
+            <i class="fa fa-arrow-down text-dark" aria-hidden="true"></i>
+        </a>
+
+        <a class="btn btn-sm btn-secondary float-right" id="vschc-to-top-btn" title="Scoll To Top">
+            <i class="fa fa-arrow-up text-dark" aria-hidden="true"></i>
+        </a>
+    </div>
+
     <link rel="stylesheet" href="${ opts.getResourceUri('css/style.css') }">
     <link rel="stylesheet" href="${ opts.getResourceUri('css/' + opts.styleFile + '.css') }" vschc-style="custom">
 
@@ -230,6 +242,7 @@ export function generateHeader(opts: GenerateHeaderOptions) {
         <title>HTTP Client</title>
     </head>
     <body>
+        <div id="vschc-body-top" class="clearfix"></div>
 `;
 }
 
@@ -280,15 +293,15 @@ export function generateNavBarHeader(opts: GenerateNavBarHeaderOptions) {
             ${ opts.getHeaderButtons ? opts.getHeaderButtons() : '' }
 
             <div id="vschc-social-media-btns">
-                <a class="btn btn-dark btn-sm" href="https://github.com/mkloubert/vscode-http-client" target="_blank" title="Open Project On GitHub">
+                <a class="btn btn-dark btn-sm vschc-btn-with-known-url" vschc-url="github" title="Open Project On GitHub">
                     <i class="fa fa-github" aria-hidden="true"></i>
                 </a>
 
-                <a class="btn btn-dark btn-sm" href="https://twitter.com/mjkloubert" target="_blank" title="Follow Author On Twitter">
+                <a class="btn btn-dark btn-sm vschc-btn-with-known-url" vschc-url="twitter" title="Follow Author On Twitter">
                     <i class="fa fa-twitter" aria-hidden="true"></i>
                 </a>
 
-                <a class="btn btn-dark btn-sm" href="https://paypal.me/MarcelKloubert" target="_blank" title="Support Project via PayPal">
+                <a class="btn btn-dark btn-sm vschc-btn-with-known-url" vschc-url="paypal" title="Support Project via PayPal">
                     <i class="fa fa-paypal" aria-hidden="true"></i>
                 </a>
             </div>
