@@ -214,8 +214,8 @@ interface WebViewMessage extends vschc.WebViewMessage {
 export const EVENT_WEBVIEWPANEL_DISPOSED = 'webviewpanel.disposed';
 const KNOWN_URLS = {
     'github': 'https://github.com/mkloubert/vscode-http-client',
-    'paypal': 'https://twitter.com/mjkloubert',
-    'twitter': 'https://paypal.me/MarcelKloubert',
+    'paypal': 'https://paypal.me/MarcelKloubert',
+    'twitter': 'https://twitter.com/mjkloubert',
 };
 let nextHTTPRequestId = Number.MIN_SAFE_INTEGER;
 /**
