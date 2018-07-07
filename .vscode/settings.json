@@ -12,7 +12,7 @@
             {
                 "name": "Resources",
                 "files": [
-                    "/src/res/**/*"
+                    "src/res/**/*"
                 ],
 
                 "deployOnChange": true,
@@ -29,12 +29,18 @@
                 "dir": "./out/res",
 
                 "mappings": {
-                    "/src/res/css/**/*": "/css",
-                    "/src/res/help/**/*": "/help",
-                    "/src/res/img/**/*": "/img",
-                    "/src/res/js/**/*": "/js"
+                    "src/res/css/**/*": "/css",
+                    "src/res/help/**/*": "/help",
+                    "src/res/img/**/*": "/img",
+                    "src/res/js/**/*": "/js"
                 }
             }
-        ]
+        ],
+
+        "useFastGlob": true
+    },
+
+    "kanban": {
+        "openOnStartup": true
     }
 }

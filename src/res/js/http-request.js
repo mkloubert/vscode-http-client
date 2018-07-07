@@ -983,7 +983,7 @@ jQuery(() => {
     jQuery('#vschc-input-method').select2({
         tags: true
     });
-})
+});
 
 jQuery(() => {
     window.addEventListener('message', (e) => {

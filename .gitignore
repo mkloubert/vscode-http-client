@@ -5,3 +5,5 @@ node_modules
 /pushall.sh
 /typedoc.cmd
 /tsdoc
+/.vscode/vscode-kanban.json
+/.vscode/vscode-kanban.filter

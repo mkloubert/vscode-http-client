@@ -161,7 +161,7 @@ interface SetBodyContentFromFileOptions {
 /**
  * Options for starting a new HTTP request.
  */
-export interface StartNewRquestOptions {
+export interface StartNewRequestOptions {
     /**
      * The initial content for the body.
      */
@@ -233,7 +233,7 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
      */
     protected _html: string | false = false;
     private _panel: vscode.WebviewPanel;
-    private _startOptions: StartNewRquestOptions;
+    private _startOptions: StartNewRequestOptions;
     private _styleChangedListener: (uri: vscode.Uri) => void;
 
     /**
@@ -445,11 +445,11 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
     /**
      * Opens the view to start a request.
      *
-     * @param {StartNewRquestOptions} [opts] Custom options.
+     * @param {StartNewRequestOptions} [opts] Custom options.
      *
      * @return {Promise<boolean>} The promise that indicates if operation was successful or not.
      */
-    public async start(opts?: StartNewRquestOptions) {
+    public async start(opts?: StartNewRequestOptions) {
         const ME = this;
 
         if (this._panel) {
@@ -555,7 +555,7 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
     /**
      * Gets the last start options.
      */
-    public get startOptions(): StartNewRquestOptions {
+    public get startOptions(): StartNewRequestOptions {
         return this._startOptions;
     }
 
@@ -1587,11 +1587,11 @@ export async function saveOpenRequests() {
 /**
  * Starts a new request.
  *
- * @param {StartNewRquestOptions} [opts] Custom options.
+ * @param {StartNewRequestOptions} [opts] Custom options.
  *
  * @return {Promise<IHTTPRequest>} The promise with the new request object.
  */
-export async function startNewRequest(opts?: StartNewRquestOptions): Promise<IHTTPRequest> {
+export async function startNewRequest(opts?: StartNewRequestOptions): Promise<IHTTPRequest> {
     let newRequest: HTTPRequest;
     try {
         newRequest = new HTTPRequest();
