@@ -228,10 +228,14 @@ export function generateHeader(opts: GenerateHeaderOptions) {
                 } catch (e) { }
             }
 
-            window.onerror = function() {
-                vschc_log(
-                    JSON.stringify(arguments)
-                );
+            window.onerror = function(message, url, line, column, error) {
+                vschc_log({
+                    message: message,
+                    url: url,
+                    line: line,
+                    column: column,
+                    error: error
+                });
 
                 return false;
             };

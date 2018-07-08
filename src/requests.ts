@@ -18,12 +18,9 @@
 import * as _ from 'lodash';
 import * as Crypto from 'crypto';
 import * as FSExtra from 'fs-extra';
-import * as HTTP from 'http';
-import * as HTTPs from 'https';
 import * as MimeTypes from 'mime-types';
 const NormalizeHeaderCase = require("header-case-normalizer");
 import * as Path from 'path';
-import * as URL from 'url';
 import * as UUID from 'uuid';
 import * as vschc from './extension';
 import * as vschc_html from './html';
@@ -212,11 +209,6 @@ interface WebViewMessage extends vschc.WebViewMessage {
  * Name of an event that is invoked after a WebView panel has been disposed.
  */
 export const EVENT_WEBVIEWPANEL_DISPOSED = 'webviewpanel.disposed';
-const KNOWN_URLS = {
-    'github': 'https://github.com/mkloubert/vscode-http-client',
-    'paypal': 'https://paypal.me/MarcelKloubert',
-    'twitter': 'https://twitter.com/mjkloubert',
-};
 let nextHTTPRequestId = Number.MIN_SAFE_INTEGER;
 /**
  * The global list of requests.
@@ -487,40 +479,15 @@ export abstract class HTTPRequestBase extends vscode_helpers.DisposableBase impl
 
             newPanel.webview.onDidReceiveMessage((msg: WebViewMessage) => {
                 try {
-                    if (_.isNil(msg)) {
+                    if (vschc.handleDefaultWebViewMessage(msg)) {
                         return;
                     }
 
-                    let action: Function = async () => {
-                        await ME.onDidReceiveMessage(msg);
-                    };
-
-                    switch (msg.command) {
-                        case 'openKnownUrl':
-                            const KU = KNOWN_URLS[ vscode_helpers.normalizeString(msg.data) ];
-                            if (!_.isNil(KU)) {
-                                action = async () => {
-                                    await vschc.open( KU );
-                                };
-                            }
-                            break;
-
-                        case 'openLink':
-                            const LINK = vscode_helpers.toStringSafe(msg.data).trim();
-                            if (LINK.toLowerCase().startsWith('http://') || LINK.toLowerCase().startsWith('https://')) {
-                                action = async () => {
-                                    await vschc.open( LINK );
-                                };
-                            }
-                            break;
-                    }
-
-                    if (action) {
-                        Promise.resolve( action() ).then(() => {
-                        }, (err) => {
-                            ME.showError(err);
-                        });
-                    }
+                    Promise.resolve(
+                        ME.onDidReceiveMessage(msg)
+                    ).then(() => {}, (err) => {
+                        ME.showError(err);
+                    });
                 } catch (e) {
                     ME.showError(e);
                 }
@@ -814,10 +781,6 @@ export class HTTPRequest extends HTTPRequestBase {
 
             case 'loadBodyContent':
                 await this.loadBodyContent();
-                break;
-
-            case 'log':
-                console.log(`[vscode-http-client] '${ vscode_helpers.toStringSafe(msg.data.message) }'`);
                 break;
 
             case 'onLoaded':

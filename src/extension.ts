@@ -26,6 +26,7 @@ import * as MimeTypes from 'mime-types';
 import * as Moment from 'moment';
 import * as Path from 'path';
 import * as OS from 'os';
+import * as URL from 'url';
 import * as vschc_help from './help';
 import * as vschc_html from './html';
 import * as vschc_requests from './requests';
@@ -33,6 +34,16 @@ import * as vschc_workspaces from './workspaces';
 import * as vscode from 'vscode';
 import * as vscode_helpers from 'vscode-helpers';
 
+
+/**
+ * A message item for a popup with an action.
+ */
+export interface ActionMessageItem extends vscode.MessageItem {
+    /**
+     * The (optional) action to invoke.
+     */
+    action?: () => any;
+}
 
 /**
  * A result of a 'exec()' function call.
@@ -127,9 +138,15 @@ let extension: vscode.ExtensionContext;
  */
 export const IS_UNSET = Symbol('IS_UNSET');
 const KEY_CURRENT_STYLE = 'vschcCurrentStyle';
+const KEY_LAST_KNOWN_DEFAULT_URI = 'vschcLastKnownDefaultUri';
 const KEY_LAST_KNOWN_VERSION = 'vschcLastKnownVersion';
 let isDeactivating = false;
-const KEY_LAST_KNOWN_DEFAULT_URI = 'vschcLastKnownDefaultUri';
+const KNOWN_URLS = {
+    'github': 'https://github.com/mkloubert/vscode-http-client',
+    'paypal': 'https://paypal.me/MarcelKloubert',
+    'twitter': 'https://twitter.com/mjkloubert',
+};
+
 let outputChannel: vscode.OutputChannel;
 let packageFile: PackageFile;
 let workspaceWatcher: vscode_helpers.WorkspaceWatcherContext<vschc_workspaces.Workspace>;
@@ -952,6 +969,100 @@ export function getWebViewResourceUris(): vscode.Uri[] {
     } catch { }
 
     return URIs;
+}
+
+/**
+ * Handles a default webview message.
+ *
+ * @param {WebViewMessage} msg The message to handle.
+ *
+ * @return {boolean} Message has been handled or not.
+ */
+export function handleDefaultWebViewMessage(msg: WebViewMessage) {
+    if (_.isNil(msg)) {
+        return true;
+    }
+
+    let action: Function;
+
+    switch (msg.command) {
+        case 'log':
+            action = () => {
+                if (!_.isNil(msg.data) && !_.isNil(msg.data.message)) {
+                    try {
+                        console.log(
+                            JSON.parse(
+                                vscode_helpers.toStringSafe(msg.data.message)
+                            )
+                        );
+                    } catch (e) { }
+                }
+            };
+            break;
+
+        case 'openExternalUrl':
+            {
+                const URL_TO_OPEN = vscode_helpers.toStringSafe(msg.data.url);
+                const URL_TEXT = vscode_helpers.toStringSafe(msg.data.text).trim();
+
+                if (!vscode_helpers.isEmptyString(URL_TO_OPEN)) {
+                    action = async() => {
+                        // check if "parsable"
+                        URL.parse( URL_TO_OPEN );
+
+                        let urlPromptText: string;
+                        if ('' === URL_TEXT) {
+                            urlPromptText = `'${ URL_TO_OPEN }'`;
+                        } else {
+                            urlPromptText = `'${ URL_TEXT }' (${ URL_TO_OPEN })`;
+                        }
+
+                        const SELECTED_ITEM = await vscode.window.showWarningMessage<ActionMessageItem>(
+                            `Do you really want to open the URL ${ urlPromptText }?`,
+                            {
+                                title: 'Yes',
+                                action: async () => {
+                                    await open(URL_TO_OPEN);
+                                }
+                            },
+                            {
+                                title: 'No',
+                                isCloseAffordance: true
+                            }
+                        );
+
+                        if (SELECTED_ITEM) {
+                            if (SELECTED_ITEM.action) {
+                                await SELECTED_ITEM.action();
+                            }
+                        }
+                    };
+                }
+            }
+            break;
+
+        case 'openKnownUrl':
+            const KU = KNOWN_URLS[ vscode_helpers.normalizeString(msg.data) ];
+            if (!_.isNil(KU)) {
+                action = async () => {
+                    await open( KU );
+                };
+            }
+            break;
+    }
+
+    if (action) {
+        Promise.resolve(
+            action()
+        ).then(() => {
+        }, (err) => {
+            showError(err);
+        });
+
+        return true;
+    }
+
+    return false;
 }
 
 /**

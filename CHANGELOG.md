@@ -9,7 +9,7 @@
   * [moment-timezone](https://www.npmjs.com/package/moment-timezone) `^0.5.21`
   * [uuid](https://www.npmjs.com/package/uuid) `^3.3.2`
   * [vscode-helpers](https://www.npmjs.com/package/vscode-helpers) `^2.10.3`
-* fixed code typos
+* bugfixes and typo fixes
 * code cleanups and improvements
 
 ## 0.32.1 (May 17th, 2018; fixes)

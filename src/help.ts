@@ -278,20 +278,14 @@ export async function showScriptHelp() {
 
     PANEL.webview.onDidReceiveMessage((msg) => {
         try {
-            let action: Function;
-
-            if (!_.isNil(msg)) {
-                action = async () => {
-                    await HANDLE_MSG(msg);
-                };
+            if (vschc.handleDefaultWebViewMessage(msg)) {
+                return;
             }
 
-            if (action) {
-                Promise.resolve( action() ).then(() => {
-                }, (err) => {
-                    vschc.showError(err);
-                });
-            }
+            Promise.resolve( HANDLE_MSG(msg) ).then(() => {
+            }, (err) => {
+                vschc.showError(err);
+            });
         } catch (e) {
             vschc.showError(e);
         }

@@ -78,8 +78,6 @@ jQuery(() => {
                             contentPreparer();
                         }
 
-                        vschc_update_markdown_links();
-
                         SELECT.prop('disabled', false);                
                     }
                 }
@@ -117,8 +115,6 @@ jQuery(() => {
                         if (contentPreparer) {
                             contentPreparer();
                         }
-
-                        vschc_update_markdown_links();
 
                         SELECT.prop('disabled', false);                
                     }
@@ -172,8 +168,6 @@ jQuery(() => {
                             );
 
                             vschc_apply_highlight( OTHER_CONTENT );
-
-                            vschc_update_markdown_links();
                         }
                     }
                 }

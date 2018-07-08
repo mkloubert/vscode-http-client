@@ -13,6 +13,13 @@ function vschc_as_array(val) {
     return val;
 }
 
+function vschc_external_url(url, text) {
+    vschc_post('openExternalUrl', {
+        text: vschc_to_string(text),
+        url: vschc_to_string(url)
+    });
+}
+
 function vschc_from_markdown(md) {
     const CONVERTER = vschc_showdown();
 
@@ -31,6 +38,22 @@ function vschc_from_markdown(md) {
 
     CONTENT.find('img')
            .addClass('img-fluid');
+
+    CONTENT.find('a').each(function() {
+        const A = jQuery(this);
+
+        let text = vschc_to_string( A.text() );
+        let href = vschc_to_string( A.attr('href') );
+
+        if ('' === text.trim()) {
+            text = href;
+        }
+
+        A.attr('href', '#');
+        A.on('click', function() {
+            vschc_external_url(href, text);
+        });
+    });
 
     return CONTENT;
 }
@@ -147,23 +170,6 @@ ${ val.stack }`;
     } catch (e) { }
 
     return '';
-}
-
-function vschc_update_markdown_links() {
-    const CONTENT = jQuery('.vschc-markdown');
-
-    CONTENT.find('a').each(function() {
-        const A = jQuery(this);
-        
-        const HREF = vschc_to_string( A.attr('href') );
-        A.attr('href', '#');
-
-        A.off('click').on('click', function(e) {
-            e.preventDefault();
-
-            vschc_post('openLink', HREF);
-        });
-    });
 }
 
 jQuery(() => {
