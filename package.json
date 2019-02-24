@@ -2,10 +2,10 @@
     "name": "vscode-http-client",
     "displayName": "HTTP Client",
     "description": "Simple way to do HTTP requests.",
-    "version": "0.33.0",
+    "version": "0.34.0",
     "publisher": "mkloubert",
     "engines": {
-        "vscode": "^1.23.0"
+        "vscode": "^1.31.0"
     },
     "categories": [
         "Other"
@@ -172,34 +172,34 @@
     },
     "readmeFilename": "README.md",
     "devDependencies": {
-        "@types/fs-extra": "^5.0.4",
+        "@types/fs-extra": "5.0.2",
         "@types/html-entities": "^1.2.16",
-        "@types/lodash": "^4.14.110",
-        "@types/marked": "^0.3.0",
+        "@types/lodash": "^4.14.121",
+        "@types/marked": "0.3.0",
         "@types/mime-types": "^2.1.0",
-        "@types/mocha": "^2.2.42",
+        "@types/mocha": "^5.2.6",
         "@types/moment": "^2.13.0",
-        "@types/moment-timezone": "^0.5.6",
-        "@types/node": "^7.0.67",
+        "@types/moment-timezone": "^0.5.10",
+        "@types/node": "10.1.4",
         "@types/sanitize-filename": "^1.1.28",
-        "@types/uuid": "^3.4.3",
-        "tslint": "^5.10.0",
-        "typescript": "^2.9.2",
-        "vscode": "^1.1.18"
+        "@types/uuid": "^3.4.4",
+        "tslint": "^5.13.0",
+        "typescript": "^3.3.3333",
+        "vscode": "^1.1.30"
     },
     "dependencies": {
-        "fs-extra": "^5.0.0",
+        "fs-extra": "^7.0.1",
         "header-case-normalizer": "^1.0.3",
         "html-entities": "^1.2.1",
-        "lodash": "^4.17.10",
-        "marked": "^0.3.19",
-        "merge-deep": "^3.0.1",
-        "mime-types": "^2.1.18",
-        "moment": "^2.22.2",
-        "moment-timezone": "^0.5.21",
-        "node-enumerable": "^3.9.0",
+        "lodash": "^4.17.11",
+        "marked": "^0.6.1",
+        "merge-deep": "^3.0.2",
+        "mime-types": "^2.1.22",
+        "moment": "^2.24.0",
+        "moment-timezone": "^0.5.23",
+        "node-enumerable": "^4.0.2",
         "sanitize-filename": "^1.6.1",
         "uuid": "^3.3.2",
-        "vscode-helpers": "^2.10.3"
+        "vscode-helpers": "^4.0.1"
     }
 }

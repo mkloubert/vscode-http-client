@@ -716,7 +716,7 @@ async function asStringValue(val: any): Promise<string | symbol> {
     return vscode_helpers.toStringSafe(val);
 }
 
-function uriParamsToObject(uri: URL.Url | vscode.Uri): any {
+function uriParamsToObject(uri: any): any {
     if (!uri) {
         return <any>uri;
     }
