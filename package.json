@@ -195,7 +195,7 @@
         "marked": "^0.6.1",
         "merge-deep": "^3.0.2",
         "mime-types": "^2.1.22",
-        "moment": "^2.24.0",
+        "moment": "^2.29.2",
         "moment-timezone": "^0.5.23",
         "node-enumerable": "^4.0.2",
         "sanitize-filename": "^1.6.1",
